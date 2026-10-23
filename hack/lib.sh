@@ -27,19 +27,21 @@ component_version() {
 # Build (and, unless $4 is "notest", test) component $1's melange package
 # into ./packages, signed with a throwaway key. The private key is deleted as
 # soon as the APKs are signed; its public half is copied to $3 for apko.
-# Key generation happens in $2, a temp dir the caller removes.
+# Key generation happens in a subdir of $2, a temp dir the caller removes.
 build_packages() {
   local c=$1 tmp=$2 pub=$3 mode=${4:-test} dir=components/$1
   rm -rf packages
   : > "$pub"
   [[ -f $dir/melange.yaml ]] || return 0
 
-  (cd "$tmp" && melange keygen >/dev/null)
+  local key=$tmp/keygen
+  mkdir -p "$key"
+  (cd "$key" && melange keygen >/dev/null)
   melange build "$dir/melange.yaml" \
     --arch "$ARCH" --runner "$MELANGE_RUNNER" --empty-workspace \
-    --signing-key "$tmp/melange.rsa" --out-dir packages
-  cp "$tmp/melange.rsa.pub" "$pub"
-  rm -f "$tmp/melange.rsa"
+    --signing-key "$key/melange.rsa" --out-dir packages
+  cp "$key/melange.rsa.pub" "$pub"
+  rm -rf "$key"
 
   if [[ $mode != notest ]]; then
     melange test "$dir/melange.yaml" \
