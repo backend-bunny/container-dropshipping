@@ -9,7 +9,7 @@ keyless cosign, published to GHCR.
 
 | Component | Image | What | Shell? |
 |-----------|-------|------|--------|
-| [`tofu-ci`](components/tofu-ci/README.md) | `ghcr.io/backend-bunny/tofu-ci` | OpenTofu 1.13.1 + age/curl/jq/git/ssh for `nix-hosts` GitLab CI | yes (toolbox exception) |
+| [`tofu-ci`](components/tofu-ci/README.md) | `ghcr.io/backend-bunny/tofu-ci` | OpenTofu 1.13.1 + age/curl/jq/git/ssh for GitLab CI jobs | yes (toolbox exception) |
 | [`signal-cli`](components/signal-cli/README.md) | `ghcr.io/backend-bunny/signal-cli` | Signal messenger CLI / JSON-RPC daemon | no (distroless) |
 
 Every image runs as uid/gid **65532** and is built for `x86_64` only.
@@ -95,6 +95,10 @@ task publish-dry-run -- tofu-ci  # + print the tags CI would push
 task lock -- tofu-ci             # regenerate the lockfile
 task lock:all
 ```
+
+Downloads (Gradle/Go dependencies, Wolfi build-environment APKs) are cached
+in `.cache/` (gitignored) and reused across builds; CI persists the same
+directory per component.
 
 melange needs unprivileged user namespaces (bubblewrap). On Ubuntu 24.04:
 `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0`.

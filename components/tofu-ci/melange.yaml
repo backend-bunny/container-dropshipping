@@ -25,6 +25,9 @@ environment:
     CGO_ENABLED: "0"
     # Never download a toolchain inside the sandbox; fail if go-1.27 is too old.
     GOTOOLCHAIN: local
+    # melange mounts --cache-dir here; CI persists it between runs.
+    GOMODCACHE: /var/cache/melange/gomodcache
+    GOCACHE: /var/cache/melange/gocache
 
 pipeline:
   - uses: git-checkout

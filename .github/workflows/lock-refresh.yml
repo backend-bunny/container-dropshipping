@@ -43,6 +43,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-tools
+        with:
+          component: ${{ matrix.component }}
       # melange builds the @local packages so apko can resolve their deps.
       - run: devbox run -- hack/lock.sh "$COMPONENT"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

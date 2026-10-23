@@ -9,9 +9,8 @@ Append-only, newest last. Format: `## [YYYY-MM-DD] <kind> | <subject>`.
   `renovate.json`.
 - tofu-ci: Wolfi has only `opentofu-1.11`/`-1.12`, so tofu 1.13.1 is built
   with melange from the upstream tag (`go-1.27`, upstream goreleaser flags).
-- signal-cli: ported from `kitty-couple-public/repack` unchanged except that
-  the melange key is no longer a committed file (ephemeral, passed with
-  `--keyring-append`).
+- signal-cli: the melange key is ephemeral, passed with `--keyring-append`
+  rather than listed in `apko.yaml`.
 - Investigated `apko lock`/`--lockfile` with melange `@local` packages (apko
   v1.4.12): control hash enforced, signature not checked, packages missing
   from the lock silently dropped. Adopted a Wolfi-only committed lock +
@@ -42,3 +41,25 @@ Append-only, newest last. Format: `## [YYYY-MM-DD] <kind> | <subject>`.
 - AGENTS.md now states that Renovate owns action SHAs, `# renovate:` comments
   and image digests, never touches `apko.lock.json` (lock-refresh PR only),
   and must not automerge tofu-ci tofu bumps (matches `renovate.json`).
+
+## [2026-10-23] docs | remove consumer-specific references
+
+- README, component READMEs, apko.yaml comment and wiki no longer name
+  consumers, clusters, the predecessor repo or the replaced upstream image;
+  tofu-ci is described by its runtime contract only.
+
+## [2026-10-23] add | standard OCI annotations
+
+- Published images only carried apko's automatic `created`/`source`/
+  `revision`. Added title, description, licenses, vendor, url and
+  documentation to each `apko.yaml`, plus `image.version` from the build
+  scripts; `hack/test.sh` enforces them. Lock `config.checksum` updated
+  (comment/annotation-only config change, package set unchanged).
+
+## [2026-10-23] add | download caches for melange builds
+
+- signal-cli PR build failed: Maven Central returned 403 to the runner
+  (artifact fine from elsewhere; transient IP block). Gradle and Go now keep
+  their downloads in melange's `--cache-dir`, Wolfi build-env APKs go to
+  `--apk-cache-dir`, and CI persists `.cache/` per component with
+  `actions/cache`. See `components/build-pipeline.md` → Download caches.

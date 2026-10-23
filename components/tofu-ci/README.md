@@ -1,9 +1,7 @@
 # tofu-ci
 
-CI image for the OpenTofu jobs in `DetBlirBaraKnas/nix-hosts` (gitlab.com),
-run by the Kubernetes-executor runner on the `foundation` cluster in a
-namespace with `restricted` Pod Security. Replaces
-`ghcr.io/opentofu/opentofu:1.13.1` (root, Alpine 3.20/EOL).
+Non-root CI image for OpenTofu jobs, built for GitLab CI's Kubernetes
+executor in namespaces with `restricted` Pod Security.
 
 Image: `ghcr.io/backend-bunny/tofu-ci` (pin by digest).
 
@@ -23,8 +21,8 @@ minor/major bumps only on approval from the Dependency Dashboard.
 ## Exception: toolbox, not distroless
 
 GitLab's executor runs job scripts through `sh`, so the image ships busybox.
-It has **no entrypoint** (`cmd: /bin/sh`): GitLab overrides it, and nix-hosts
-sets `entrypoint: [""]`.
+It has **no entrypoint** (`cmd: /bin/sh`): GitLab overrides it (use
+`entrypoint: [""]` in the job's `image:`).
 
 ## Runtime contract
 

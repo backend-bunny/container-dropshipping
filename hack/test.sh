@@ -24,6 +24,18 @@ if [[ $user != 65532 && $user != 65532:65532 ]]; then
   exit 1
 fi
 
+# Standard OCI annotations, which apko also writes as config labels.
+labels=$(docker image inspect --format '{{json .Config.Labels}}' "$image")
+required=(title description licenses url)
+[[ -z $(component_version "$c") ]] || required+=(version)
+for key in "${required[@]}"; do
+  if ! jq -e --arg k "org.opencontainers.image.$key" '.[$k] // "" | length > 0' \
+    <<<"$labels" >/dev/null; then
+    echo "FAIL: missing label org.opencontainers.image.$key (set it in apko.yaml annotations)" >&2
+    exit 1
+  fi
+done
+
 if [[ -x $dir/test.sh ]]; then
   VERSION=$(component_version "$c") "$dir/test.sh" "$image"
 fi

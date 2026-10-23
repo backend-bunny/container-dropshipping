@@ -2,7 +2,7 @@
 
 [AsamK/signal-cli](https://github.com/AsamK/signal-cli), the Signal messenger
 CLI and JSON-RPC/HTTP daemon, built from source into a **distroless**,
-non-root image. Ported from `kitty-couple-public/repack`.
+non-root image.
 
 Image: `ghcr.io/backend-bunny/signal-cli` (pin by digest).
 
