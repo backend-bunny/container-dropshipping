@@ -6,9 +6,8 @@ tags: [opentofu, ci, gitlab, toolbox, melange, go]
 
 # tofu-ci image
 
-CI image for the OpenTofu jobs in gitlab.com `DetBlirBaraKnas/nix-hosts`
-(`.gitlab/ci/tofu.yml`), run by the Kubernetes-executor runner on the
-`foundation` cluster under `restricted` Pod Security.
+Non-root CI image for OpenTofu jobs on GitLab CI's Kubernetes executor under
+`restricted` Pod Security.
 
 ## Key Facts
 
@@ -18,13 +17,12 @@ CI image for the OpenTofu jobs in gitlab.com `DetBlirBaraKnas/nix-hosts`
 - Extra Wolfi packages: `age busybox ca-certificates-bundle curl git jq openssh-client`
 - Local subpackage `tofu-ci-gitconfig` ships `/etc/gitconfig` (`safe.directory = *`)
 - uid/gid 65532, `HOME=/home/nonroot`, `/tmp` 1777, no entrypoint, `cmd: /bin/sh`
-- Replaces `ghcr.io/opentofu/opentofu:1.13.1` (root, Alpine 3.20 EOL)
 
 ## Why melange, not Wolfi
 
 On 2026-10-23 the Wolfi index had only `opentofu-1.11` (≤1.11.8) and
 `opentofu-1.12` (≤1.12.1). Tofu minor bumps can rewrite state, so the
-consumer needs exactly 1.13.1. The build reproduces upstream's goreleaser
+version is pinned to exactly 1.13.1. The build reproduces upstream's goreleaser
 flags (`-trimpath -mod=readonly`, `-ldflags "-s -w -X …version.dev=no"`),
 without `officialBuild`, which is for the OpenTofu project's own releases.
 If Wolfi gains a matching `opentofu-1.13`, switching to it is an option.

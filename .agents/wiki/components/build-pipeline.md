@@ -53,7 +53,7 @@ cancelled).
   `sysctl kernel.apparmor_restrict_unprivileged_userns=0` (the runner VM is
   ephemeral). Chainguard's `setup-melange` instead adds a profile for
   `/usr/bin/bwrap`, which doesn't cover the nix binary.
-- **Build deps are discovered iteratively** (carried over from repack): a
+- **Build deps are discovered iteratively**: a
   from-source build can fail on a missing Wolfi package. Add it to
   `environment.contents.packages` and retry.
 - **Wolfi names differ from Debian** (`libzmq3-dev` → `zeromq-dev`,
@@ -69,8 +69,8 @@ cancelled).
 - **apko keyring paths:** the ephemeral pubkey is passed with
   `--keyring-append`, never listed in `apko.yaml` (so it isn't in the lock).
   `@local ./packages` is relative to the repo root: run scripts from there.
-- **Transient `apko InitKeyring` nil-pointer panic** was seen once in repack
-  CI (concurrent keyring write). Retry before debugging.
+- **Transient `apko InitKeyring` nil-pointer panic** has been seen
+  in CI (concurrent keyring write). Retry before debugging.
 - **apko tarballs don't load under the tag you gave `apko build`** (it may add
   an arch suffix such as `-amd64`). `hack/test.sh` uses the name `docker load`
   prints. First CI run failed with `No such image: …:build`.

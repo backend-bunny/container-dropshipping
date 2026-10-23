@@ -44,7 +44,7 @@ paths:
     gid: 0
     permissions: 0o1777
 
-# No entrypoint: GitLab overrides it (nix-hosts sets `entrypoint: [""]`).
+# No entrypoint: GitLab overrides it (jobs set `entrypoint: [""]`).
 cmd: /bin/sh
 
 archs:

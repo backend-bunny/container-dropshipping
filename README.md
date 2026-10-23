@@ -9,7 +9,7 @@ keyless cosign, published to GHCR.
 
 | Component | Image | What | Shell? |
 |-----------|-------|------|--------|
-| [`tofu-ci`](components/tofu-ci/README.md) | `ghcr.io/backend-bunny/tofu-ci` | OpenTofu 1.13.1 + age/curl/jq/git/ssh for `nix-hosts` GitLab CI | yes (toolbox exception) |
+| [`tofu-ci`](components/tofu-ci/README.md) | `ghcr.io/backend-bunny/tofu-ci` | OpenTofu 1.13.1 + age/curl/jq/git/ssh for GitLab CI jobs | yes (toolbox exception) |
 | [`signal-cli`](components/signal-cli/README.md) | `ghcr.io/backend-bunny/signal-cli` | Signal messenger CLI / JSON-RPC daemon | no (distroless) |
 
 Every image runs as uid/gid **65532** and is built for `x86_64` only.

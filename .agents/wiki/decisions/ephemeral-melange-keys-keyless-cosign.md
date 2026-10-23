@@ -10,9 +10,8 @@ date: 2026-10-23
 ## Context
 
 melange signs the APKs it builds, and apko refuses unsigned or untrusted
-packages. In `kitty-couple-public/repack` that key was long-lived:
-`keys/melange.rsa.pub` committed, private half in the GitLab CI variable
-`MELANGE_SIGNING_KEY`. A long-lived key is a secret to rotate, leak and
+packages. The usual setup is a long-lived key: public half committed,
+private half in a CI secret. A long-lived key is a secret to rotate, leak and
 protect, and nothing outside the build ever verifies those APK signatures.
 
 ## Decision
