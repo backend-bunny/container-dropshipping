@@ -74,4 +74,10 @@ cancelled).
 - **apko tarballs don't load under the tag you gave `apko build`** (it may add
   an arch suffix such as `-amd64`). `hack/test.sh` uses the name `docker load`
   prints. First CI run failed with `No such image: …:build`.
+- **Sign the index digest, not apko's `--image-refs`.** `apko publish` pushes
+  an image index (the tags point at it), but `--image-refs` lists the per-arch
+  manifests inside it. The first publish signed/attested the amd64 manifest,
+  so `cosign verify` on the tag's digest found no signatures.
+  `hack/publish.sh` now resolves the tag's digest with
+  `docker buildx imagetools inspect`.
 - **No shell in distroless images**: probes must be `httpGet`/`tcpSocket`.

@@ -34,7 +34,14 @@ apko publish "$dir/apko.yaml" "${refs[@]}" \
   --arch "$ARCH" --lockfile "$out/build.lock.json" "${keys[@]}" \
   --sbom=false --image-refs "$out/image-refs"
 
-# apko writes one "<repo>:<tag>@sha256:..." line per tag; all share a digest.
-digest=$(head -n1 "$out/image-refs" | sed 's/.*@//')
+# The tags point at an image index. apko's --image-refs lists the per-arch
+# manifests inside it, so resolve the digest the tag actually points to:
+# that is what consumers pin and what cosign must sign.
+digest=$(docker buildx imagetools inspect "${refs[0]}" --format '{{json .Manifest}}' \
+  | python3 -c 'import json, sys; print(json.load(sys.stdin)["digest"])')
+if [[ $digest != sha256:* ]]; then
+  echo "error: could not resolve the index digest of ${refs[0]}" >&2
+  exit 1
+fi
 echo "$digest" > "$out/digest"
 echo "pushed $REGISTRY/$c@$digest"
