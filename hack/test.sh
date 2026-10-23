@@ -8,9 +8,14 @@ source hack/lib.sh
 
 c=${1:?usage: hack/test.sh <component>}
 dir=$(component_dir "$c")
-image=$REGISTRY/$c:build
 
-docker load --input "out/$c/image.tar" >/dev/null
+# apko may suffix the tag (e.g. ":build-amd64"), so use the name docker reports.
+image=$(docker load --input "out/$c/image.tar" | sed -n 's/^Loaded image: //p' | head -n1)
+if [[ -z $image ]]; then
+  echo "FAIL: docker load reported no image for out/$c/image.tar" >&2
+  exit 1
+fi
+echo "testing $image"
 
 # Every image must run as the numeric non-root UID (restricted Pod Security).
 user=$(docker image inspect --format '{{.Config.User}}' "$image")
