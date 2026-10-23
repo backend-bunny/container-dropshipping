@@ -1,0 +1,65 @@
+package:
+  # Wolfi only ships opentofu-1.11 / opentofu-1.12, so 1.13.x is built here.
+  # Minor bumps can rewrite state: Renovate opens them for approval only.
+  name: opentofu
+  # renovate: datasource=github-tags depName=opentofu/opentofu
+  version: "1.13.1"
+  epoch: 0
+  description: "OpenTofu CLI, built from the upstream release tag"
+  copyright:
+    - license: MPL-2.0
+
+environment:
+  contents:
+    repositories:
+      - https://packages.wolfi.dev/os
+    keyring:
+      - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+    packages:
+      - busybox
+      - ca-certificates-bundle
+      - git
+      # Must satisfy the `go` directive in upstream's go.mod (1.27.1 for v1.13.1).
+      - go-1.27
+  environment:
+    CGO_ENABLED: "0"
+    # Never download a toolchain inside the sandbox; fail if go-1.27 is too old.
+    GOTOOLCHAIN: local
+
+pipeline:
+  - uses: git-checkout
+    with:
+      repository: https://github.com/opentofu/opentofu
+      tag: v${{package.version}}
+      expected-commit: 233700b795b6d2372f1c56ed57a4abaec9d36475
+  - name: Build
+    runs: |
+      set -e
+      # Same flags as upstream's .goreleaser.yaml, minus officialBuild (that is
+      # for the OpenTofu project's own release builds only).
+      go build -mod=readonly -trimpath \
+        -ldflags "-s -w -X 'github.com/opentofu/opentofu/version.dev=no'" \
+        -o "${{targets.destdir}}/usr/bin/tofu" ./cmd/tofu
+
+subpackages:
+  - name: tofu-ci-gitconfig
+    description: "System gitconfig for CI checkouts owned by another uid"
+    pipeline:
+      - runs: |
+          set -e
+          # GitLab's helper checks the repo out into a mounted build dir that
+          # may not be owned by the job's uid; trust it instead of failing with
+          # "detected dubious ownership".
+          install -d "${{targets.contextdir}}/etc"
+          printf '[safe]\n\tdirectory = *\n' > "${{targets.contextdir}}/etc/gitconfig"
+
+test:
+  environment:
+    contents:
+      packages:
+        - busybox
+  pipeline:
+    - runs: |
+        set -e
+        tofu version
+        tofu version | head -n1 | grep -qx "OpenTofu v${{package.version}}"

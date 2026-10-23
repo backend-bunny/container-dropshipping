@@ -1,0 +1,16 @@
+# Build outputs (melange APKs, apko image tarballs, SBOMs)
+/packages/
+/out/
+*.tar
+*.spdx.json
+
+# melange keys are generated per build and must never be committed
+*.rsa
+*.rsa.pub
+/.keys/
+
+# Local-only notes
+/kickoff-prompt.md
+
+# devbox environment state (devbox.json + devbox.lock are committed)
+/.devbox/

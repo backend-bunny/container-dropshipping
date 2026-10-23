@@ -1,0 +1,40 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    ":dependencyDashboard"
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Upstream versions in melange configs (inline # renovate: comments), plus the tag's commit when expected-commit is pinned",
+      "managerFilePatterns": ["/^components/[^/]+/melange\\.yaml$/"],
+      "matchStringsStrategy": "combination",
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)( versioning=(?<versioning>\\S+))?\\s+version:\\s*\"(?<currentValue>[^\"]+)\"",
+        "expected-commit:\\s*(?<currentDigest>[0-9a-f]{40})"
+      ],
+      "extractVersionTemplate": "^v?(?<version>.*)$",
+      "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Tofu minor/major bumps can rewrite state: only on explicit approval from the Dependency Dashboard",
+      "matchDepNames": ["opentofu/opentofu"],
+      "matchUpdateTypes": ["minor", "major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Build toolchain (devbox: melange, apko, cosign, ...) in one PR",
+      "matchManagers": ["devbox"],
+      "groupName": "build toolchain"
+    },
+    {
+      "description": "GitHub Actions digest/version bumps in one PR",
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions"
+    }
+  ]
+}
