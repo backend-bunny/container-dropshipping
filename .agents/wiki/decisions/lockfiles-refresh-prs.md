@@ -30,20 +30,36 @@ commit can ship different packages that no one reviewed. We want:
   or the weekly **`lock-refresh`** workflow, which opens/updates one PR
   (`chore/lock-refresh`) listing every version bump. Merging it publishes.
 
-### Why a GitHub App token for the refresh PR?
+### How the refresh PR gets CI
 
-PRs opened with `GITHUB_TOKEN` don't trigger other workflows, so `ci` would
-never run on them. An App installation token does trigger them, and it's
-short-lived and scoped to the repo, unlike a PAT. The workflow's own
-`GITHUB_TOKEN` stays `contents: read`. The App holds the write access
-(Contents + Pull requests: read & write).
+`lock-refresh` opens the PR with the workflow's `GITHUB_TOKEN` (`pr` job:
+`contents`, `pull-requests`, `actions: write`). Events from `GITHUB_TOKEN`
+don't start other workflows, except `workflow_dispatch`. So after opening or
+updating the PR, the job runs `gh workflow run ci.yml --ref chore/lock-refresh`.
+`ci`'s check runs (incl. `ci-ok`) land on the PR's head commit and gate the
+merge like any PR. Without a PR base, `ci` builds every component.
 
-Required: repo variable `LOCK_REFRESH_APP_ID`, secret
-`LOCK_REFRESH_APP_PRIVATE_KEY`.
+Requires the repo setting **Settings → Actions → General → "Allow GitHub
+Actions to create and approve pull requests"**.
 
-### Why not Renovate's lock maintenance?
+A GitHub App token (PR events trigger normally) was the first design, but it
+needs an App plus a private-key secret. Dispatching needs neither.
 
-Renovate has no apko lockfile manager.
+### Why not Renovate?
+
+Renovate has no apko manager yet. **We are waiting on
+[renovatebot/renovate#38142](https://github.com/renovatebot/renovate/pull/38142)**
+(draft, open since 2025-09), which adds an `apk` datasource and an `apko`
+manager that also updates `apko.lock.json`. When it lands, check:
+
+1. how it relocks configs with `@local` repositories. `apko lock` fails
+   ("nothing provides …") unless the melange-built APKs exist, and
+   `hack/lock.sh` builds them first;
+2. whether its lock output keeps our Wolfi-only convention
+   (`hack/lockfile.py strip`).
+
+If both work out, Renovate can replace `lock-refresh`. Otherwise keep the
+workflow and let Renovate handle versions only.
 
 ## Consequences
 
