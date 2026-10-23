@@ -26,3 +26,13 @@ Append-only, newest last. Format: `## [YYYY-MM-DD] <kind> | <subject>`.
   components; `Test image` failed with `No such image: …:build`. apko's
   tarball loads under a different tag. `hack/test.sh` now uses the name from
   `docker load` output.
+
+## [2026-10-23] fix | publish: sign the index digest
+
+- First publish (427a816) succeeded, but the signature, SBOM and provenance
+  went on the amd64 manifest (`--image-refs`), not on the index the tags
+  point to: `cosign verify ghcr.io/backend-bunny/tofu-ci@sha256:d5e2f2…`
+  failed with "no signatures found"; `@sha256:652948…` (per-arch) verified.
+- `hack/publish.sh` now takes the tag's digest from
+  `docker buildx imagetools inspect`. Changing `hack/` republishes every
+  component, so this also ships correctly signed digests.
