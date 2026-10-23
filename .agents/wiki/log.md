@@ -63,3 +63,17 @@ Append-only, newest last. Format: `## [YYYY-MM-DD] <kind> | <subject>`.
   their downloads in melange's `--cache-dir`, Wolfi build-env APKs go to
   `--apk-cache-dir`, and CI persists `.cache/` per component with
   `actions/cache`. See `components/build-pipeline.md` → Download caches.
+
+## [2026-10-23] change | lock-refresh without a GitHub App; AGENTS.md refresh
+
+- `lock-refresh` now opens its PR with `GITHUB_TOKEN` and runs `ci` on the
+  branch via `workflow_dispatch` (exempt from the no-trigger rule); `ci`
+  gained a `workflow_dispatch` trigger. Needs the repo setting "Allow GitHub
+  Actions to create and approve pull requests". The App variable/secret are
+  no longer used.
+- Waiting on renovatebot/renovate#38142 (apko manager + `apko.lock.json`
+  updates) before Renovate can take over lock refreshes. See
+  [[decisions/lockfiles-refresh-prs]].
+- AGENTS.md: removed private consumer/repo names, updated to the current
+  design (Wolfi-only locks, devbox, OCI annotations, caches, index-digest
+  signing).

@@ -17,7 +17,7 @@ before troubleshooting; update it after every change (and append to
 | Page | Summary |
 |------|---------|
 | [decisions/ephemeral-melange-keys-keyless-cosign.md](decisions/ephemeral-melange-keys-keyless-cosign.md) | Throwaway melange key per build; image trust from keyless cosign + attestations |
-| [decisions/lockfiles-refresh-prs.md](decisions/lockfiles-refresh-prs.md) | Committed apko lockfiles (Wolfi-only), weekly refresh PR opened by a GitHub App |
+| [decisions/lockfiles-refresh-prs.md](decisions/lockfiles-refresh-prs.md) | Committed apko lockfiles (Wolfi-only), weekly refresh PR via GITHUB_TOKEN + dispatched ci; waiting on Renovate's apko manager (renovatebot/renovate#38142) |
 | [decisions/devbox-toolchain.md](decisions/devbox-toolchain.md) | melange/apko/cosign pinned with devbox (nixpkgs), shared by CI and local |
 
 ## Troubleshooting

@@ -68,9 +68,9 @@ version, when there is one) are missing, so new components must set them.
 
 | Workflow | Trigger | Permissions | Does |
 |----------|---------|-------------|------|
-| `ci` | pull_request | `contents: read` | discover changed components → build, test, publish dry run; `ci-ok` is the single required check |
+| `ci` | pull_request, workflow_dispatch (from lock-refresh) | `contents: read` | discover changed components → build, test, publish dry run; `ci-ok` is the single required check |
 | `publish` | push to main, dispatch | job: `packages`, `id-token`, `attestations: write` | build, test, `apko publish` (3 tags), `cosign sign`, `cosign attest --type spdxjson`, `attest-build-provenance` |
-| `lock-refresh` | Mon 05:17 UTC, dispatch | `contents: read` (PR via App token) | `hack/lock.sh` per component → one PR on `chore/lock-refresh` |
+| `lock-refresh` | Mon 05:17 UTC, dispatch | `contents: read`; `pr` job: `contents`, `pull-requests`, `actions: write` | `hack/lock.sh` per component → one PR on `chore/lock-refresh` → dispatches `ci` on it |
 
 Change discovery (`hack/discover.sh BASE`): `components/<name>/**` selects
 that component. `hack/`, `.github/` or `devbox.*` select all of them, as does

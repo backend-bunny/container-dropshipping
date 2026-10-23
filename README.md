@@ -69,8 +69,11 @@ commit installs exactly the reviewed Wolfi package versions and checksums.
   resolves no longer match the lock. Fix: `task lock -- <name>` in the same PR.
 - `lock-refresh` runs every Monday (and on demand). It re-locks every
   component and opens or updates **one** PR, `chore/lock-refresh`, listing the
-  package bumps. CI tests it like any PR; **merging it publishes** the
-  updated images. Images only pick up Wolfi security fixes when these PRs are
+  package bumps. It then dispatches `ci` on that branch (PRs pushed with
+  `GITHUB_TOKEN` don't trigger CI on their own), so it's tested like any PR;
+  **merging it publishes** the updated images. Renovate doesn't manage apko
+  lockfiles yet. We're waiting on
+  [renovatebot/renovate#38142](https://github.com/renovatebot/renovate/pull/38142). Images only pick up Wolfi security fixes when these PRs are
   merged.
 
 ## Dependency updates

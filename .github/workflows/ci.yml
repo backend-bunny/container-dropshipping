@@ -2,12 +2,15 @@ name: ci
 
 on:
   pull_request:
+  # Used by lock-refresh: its PR is pushed with GITHUB_TOKEN, which doesn't
+  # trigger pull_request. Without a PR base, every component is built.
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.event.pull_request.number }}
+  group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:

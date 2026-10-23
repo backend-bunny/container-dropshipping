@@ -6,14 +6,8 @@
 This repo rebuilds upstream software into **minimal, non-root, signed OCI images**
 built from **Wolfi** packages with Chainguard's **melange** (source → APK) and
 **apko** (APKs → image). Images publish to `ghcr.io/backend-bunny/<component>`
-and are consumed by the homelab clusters and by CI (e.g. the tofu CI image used
-by `DetBlirBaraKnas/nix-hosts` jobs on the `foundation` cluster).
-
-It is the public, GitHub-hosted successor to the GitLab-hosted
-`kitty-couple-public/repack` (local checkout:
-`/home/sara/git/genglab/kitty-couple-public/repack`). Reuse its knowledge —
-especially `.agents/skills/melange-apko-build/SKILL.md` and its component configs
-— but **not** its signing-key or Dagger/GitLab CI plumbing (see below).
+and are consumed by Kubernetes clusters and CI jobs that enforce `restricted`
+Pod Security. Operational knowledge lives in `.agents/wiki/`: read it first.
 
 ## Hard rules
 
@@ -27,67 +21,80 @@ especially `.agents/skills/melange-apko-build/SKILL.md` and its component config
   checks a *numeric* non-root UID.
 - **Distroless by default.** No shell or package manager in runtime images. The
   only exception is a **toolbox** image whose consumer needs a shell (e.g. the
-  CI image: GitLab's executor runs job scripts through `sh`). Document every
-  exception in the component's README section and in the wiki.
+  `tofu-ci` image: GitLab's executor runs job scripts through `sh`). Document
+  every exception in the component's README and in the wiki.
 - **melange signing keys are ephemeral.** Generate a fresh keypair per build
   (`melange keygen`) inside the job, sign the APKs with it, give apko the public
-  half, and discard both. **No melange private key is ever committed, stored as
-  a repo/org secret, or reused across builds.** The APK signature only has to
-  bridge melange → apko within one job; image trust comes from cosign.
+  half (`--keyring-append`, never listed in `apko.yaml`), and discard both.
+  **No melange private key is ever committed, stored as a repo/org secret, or
+  reused across builds.** The APK signature only has to bridge melange → apko
+  within one job; image trust comes from cosign.
 - **Images are signed keylessly.** cosign with GitHub Actions OIDC (Sigstore
-  public-good Fulcio/Rekor). No long-lived signing keys anywhere. Attach the SBOM
+  public-good Fulcio/Rekor). No long-lived signing keys anywhere. Sign and
+  attest the **image index digest** (what the tags point to), with the SBOM
   (apko generates SPDX) and build provenance as attestations.
+- **Standard OCI annotations.** Every `apko.yaml` sets
+  `org.opencontainers.image.{title,description,licenses,vendor,url,documentation}`
+  under `annotations:`. The build scripts add `image.version`, and apko adds
+  `created`/`source`/`revision`. `hack/test.sh` fails when they are missing.
 - **Pin everything.**
   - GitHub Actions by full commit SHA with the version in a trailing comment.
-  - Upstream versions in `melange.yaml` with a `# renovate:` inline comment
-    (same convention as `repack`).
-  - Wolfi packages in `apko.yaml` pinned to the version that matters
-    (e.g. `opentofu=1.13.1-r0`) only where the consumer depends on it.
+  - Upstream versions in `melange.yaml` with a `# renovate:` inline comment;
+    when `expected-commit` is pinned, Renovate updates it with the version.
+  - Build tools (melange, apko, cosign, task, bubblewrap, …) in
+    `devbox.json` + `devbox.lock`, used by CI and locally. Run tools via
+    `devbox run --` / `devbox shell`; don't install them any other way.
+  - Wolfi packages in `apko.yaml` pinned to a version only where the consumer
+    depends on it. If Wolfi doesn't carry the needed version, build it with
+    melange (as `tofu-ci` does for tofu 1.13.x).
 - **Every image is built from a committed apko lockfile.** Each component has
-  `apko.lock.json` next to its `apko.yaml`, generated with
-  `apko lock components/<name>/apko.yaml` (it records each resolved package's
-  version, arch, URL and checksums, plus repos and keyring). Every build uses
-  `apko build --lockfile components/<name>/apko.lock.json`, so a build of a
-  given commit installs exactly the reviewed package set.
-  - **The lock is only changed by a refresh PR**, never silently in CI: a
-    scheduled workflow re-runs `apko lock`, and if anything changed it opens a
-    PR. The PR diff is the list of package bumps, and merging it is what
-    publishes them.
-  - **CI fails when `apko.yaml` and its lock disagree** (a package added to the
-    config but missing from the lock). Regenerate the lock in the same PR as
-    the config change.
-  - **melange-built (`@local`) packages:** they are rebuilt and re-signed with a
-    throwaway key on every build, so their signature checksum and the keyring
-    change every time. `--lockfile` is documented as a *version* constraint;
-    confirm it doesn't reject a local package whose version matches but whose
-    signature doesn't. If it does, lock only the Wolfi packages and record
-    the workaround in the wiki.
-- **x86_64 only** for now. All consuming clusters are amd64; don't add `aarch64`
-  to `archs` until a consumer needs it.
-- **Never push to `main` directly.** `main` is protected (managed by
-  `tf/github` in `DetBlirBaraKnas/nix-hosts`): PR, linear history, no force
-  pushes, admins included.
+  `apko.lock.json` next to its `apko.yaml`, generated with `task lock -- <name>`
+  (`hack/lock.sh`). Every build uses `apko build --lockfile`, so a build of a
+  given commit installs exactly the reviewed Wolfi package set.
+  - **The committed lock holds Wolfi packages only.** melange-built `@local`
+    packages change their control hash on every commit, which `--lockfile`
+    enforces, so `hack/lockfile.py merge` adds them fresh at build time. See
+    `.agents/wiki/troubleshooting/apko-lockfile-local-packages.md`.
+  - **apko installs exactly the lock's package list** and silently drops config
+    packages missing from it. `hack/lockfile.py merge` is what fails CI when
+    `apko.yaml` changed without a relock or the resolved package set drifted.
+    Regenerate the lock in the same PR as the config change.
+  - **The lock is otherwise only changed by the refresh PR**, never silently
+    in CI: the scheduled `lock-refresh` workflow re-runs `apko lock` and opens
+    or updates one PR. Its diff is the list of package bumps, and merging it is
+    what publishes them.
+- **x86_64 only** for now. All consumers are amd64; don't add `aarch64` to
+  `archs` until a consumer needs it.
+- **Never push to `main` directly.** `main` is protected (managed outside this
+  repo): PR, linear history, no force pushes, admins included.
 
 ## Layout
 
 ```
 components/<name>/
   melange.yaml      # only if built from source / not in Wolfi
-  apko.yaml         # always
-  apko.lock.json    # always; generated by `apko lock`, changed only via PR
-  README.md         # what it is, who consumes it, any exceptions
-.github/workflows/  # build on PR, build+publish+sign on main, scheduled lock-refresh PR
-.github/actions/    # composite action(s) shared by components, if needed
-Taskfile.yml        # local build/test entry points, mirroring CI
+  apko.yaml         # always (with OCI annotations)
+  apko.lock.json    # always; Wolfi packages only, changed only via PR
+  test.sh           # image smoke test (run by hack/test.sh)
+  README.md         # what it is, runtime contract, any exceptions
+hack/               # build/test/lock/publish/discover scripts shared by CI and Taskfile
+.github/workflows/  # ci (PR), publish (main), lock-refresh (weekly PR)
+.github/actions/    # setup-tools: devbox toolchain, bwrap sysctl, download cache
+devbox.json/.lock   # pinned toolchain
+Taskfile.yml        # local entry points (task build/test/lock/publish-dry-run)
+renovate.json       # Renovate config
 .agents/wiki/       # operational knowledge (index.md, log.md, components/, decisions/, troubleshooting/)
 ```
+
+A component is discovered from `components/*/apko.yaml`: adding one means
+adding a directory, not editing workflows.
 
 ## Publishing contract
 
 - Image: `ghcr.io/backend-bunny/<component>`.
-- Tags: the upstream version (e.g. `1.13.1`) **and** an immutable
-  `<version>-<YYYYMMDD>`/`sha-<short>` tag. Consumers pin by **digest**.
-- Every published digest is cosign-signed and carries SBOM + provenance
+- Tags: the upstream version (e.g. `1.13.1`) **and** immutable
+  `<version>-<YYYYMMDD>` / `sha-<short>` tags. Consumers pin by **digest**.
+- Every published index digest is cosign-signed and carries SBOM + provenance
   attestations, verifiable with
   `cosign verify ghcr.io/backend-bunny/<component>@<digest> --certificate-identity-regexp '^https://github.com/backend-bunny/container-dropshipping/' --certificate-oidc-issuer https://token.actions.githubusercontent.com`.
 - Packages are **public** on GHCR, so clusters pull anonymously.
@@ -98,11 +105,29 @@ Taskfile.yml        # local build/test entry points, mirroring CI
 
 ## Dependency updates
 
-Renovate (Mend GitHub App) owns version bumps: action SHAs, the `# renovate:`
-comments in `melange.yaml`, and digest-pinned images, configured in
-`renovate.json`. It does **not** touch `apko.lock.json`; those change only
-through the scheduled lock-refresh PR. Never automerge a `tofu-ci` tofu
-version bump.
+Renovate (Mend GitHub App, enabled on this repo) owns version bumps: action
+SHAs, runner images, the `# renovate:` comments in `melange.yaml`, and the
+devbox toolchain, configured in `renovate.json`. Never automerge a `tofu-ci`
+tofu version bump.
+
+Renovate does **not** touch `apko.lock.json` yet: it has no apko manager.
+**We are waiting on [renovatebot/renovate#38142](https://github.com/renovatebot/renovate/pull/38142)** (draft as of 2026-10-23), which adds an
+`apk` datasource and an `apko` manager that can update `apko.lock.json`.
+Until it lands, the `lock-refresh` workflow owns the locks. It opens the PR
+with `GITHUB_TOKEN` (no App, no secret) and dispatches `ci` on the branch,
+because `GITHUB_TOKEN` pushes don't trigger `pull_request` workflows. When it
+lands, check how it handles our `@local` packages: `apko lock` needs the
+melange-built APKs present, which `hack/lock.sh` builds first. Then decide
+whether Renovate can replace `lock-refresh`.
+
+## Builds and caches
+
+- Gradle/Go downloads and melange's build-environment APKs are cached in
+  `.cache/` (melange `--cache-dir` / `--apk-cache-dir`), persisted per
+  component in CI with `actions/cache`. Point a component's language cache at
+  `/var/cache/melange/...` in its `melange.yaml`.
+- Never give `melange test` or apko a package cache: they must install the
+  just-built local APK, not a cached one.
 
 ## Wiki
 
@@ -119,3 +144,5 @@ entry to `log.md`. Check it before troubleshooting.
   (`packages: write`, `id-token: write`, `attestations: write`) only where it
   publishes.
 - Do not run `pull_request_target` or give PR builds publish/OIDC permissions.
+- Do not name private consumers, clusters or repositories in this public repo's
+  docs; describe components by their runtime contract.
