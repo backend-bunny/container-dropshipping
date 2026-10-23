@@ -3,6 +3,10 @@
 ARCH=x86_64
 REGISTRY=${REGISTRY:-ghcr.io/backend-bunny}
 MELANGE_RUNNER=${MELANGE_RUNNER:-bubblewrap}
+# Download caches reused across builds (CI restores/saves this dir per
+# component): language deps at /var/cache/melange inside the build, and the
+# Wolfi APKs for melange's build environment.
+CACHE_DIR=${CACHE_DIR:-.cache}
 
 # Reproducible timestamps for melange and apko: the commit being built.
 SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-$(git log -1 --format=%ct)}
@@ -45,8 +49,10 @@ build_packages() {
   local key=$tmp/keygen
   mkdir -p "$key"
   (cd "$key" && melange keygen >/dev/null)
+  mkdir -p "$CACHE_DIR/melange/$c" "$CACHE_DIR/apk"
   melange build "$dir/melange.yaml" \
     --arch "$ARCH" --runner "$MELANGE_RUNNER" --empty-workspace \
+    --cache-dir "$CACHE_DIR/melange/$c" --apk-cache-dir "$CACHE_DIR/apk" \
     --signing-key "$key/melange.rsa" --out-dir packages
   cp "$key/melange.rsa.pub" "$pub"
   rm -rf "$key"

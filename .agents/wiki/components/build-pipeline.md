@@ -30,6 +30,29 @@ How `components/<name>/` becomes a signed image at `ghcr.io/backend-bunny/<name>
 `hack/test.sh` then loads the tarball into Docker, checks `User` is 65532
 and runs `components/<name>/test.sh`.
 
+## Download caches
+
+`hack/lib.sh` passes melange `--cache-dir .cache/melange/<component>` (mounted
+at `/var/cache/melange` in the build) and `--apk-cache-dir .cache/apk`
+(Wolfi APKs for the build environment). Components point their language
+caches there: signal-cli `GRADLE_USER_HOME=/var/cache/melange/gradle`,
+tofu-ci `GOMODCACHE`/`GOCACHE` under `/var/cache/melange`.
+
+CI persists `.cache` per component with `actions/cache` in
+`.github/actions/setup-tools` (input `component`), keyed on the hash of the
+component's `melange.yaml` with a prefix restore key. PR runs read main's
+caches but write PR-scoped ones; main never restores a PR's cache.
+
+- **Not cached on purpose:** `melange test` gets no `--apk-cache-dir` (it
+  installs the just-built local APK, which must never come from a cache), and
+  apko gets no `--cache-dir`: a warm apko cache served a stale *local* APK
+  in [[troubleshooting/apko-lockfile-local-packages]].
+- **Why:** Maven Central intermittently answers 403 to GitHub-hosted runner
+  IPs. A signal-cli PR build failed on `kotlin-stdlib-2.4.10.pom` that way
+  on 2026-10-23.
+- To reset a cache: delete it under the repo's Actions → Caches, or bump
+  `epoch` in `melange.yaml` (changes the key; also rebuilds the package).
+
 ## OCI annotations
 
 Each `apko.yaml` declares `org.opencontainers.image.{title,description,licenses,vendor,url,documentation}`

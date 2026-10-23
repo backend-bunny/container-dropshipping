@@ -1,6 +1,7 @@
 # Build outputs (melange APKs, apko image tarballs, SBOMs)
 /packages/
 /out/
+/.cache/
 *.tar
 *.spdx.json
 

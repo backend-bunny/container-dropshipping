@@ -28,7 +28,9 @@ environment:
       - zip
   environment:
     JAVA_HOME: /usr/lib/jvm/default-jvm
-    GRADLE_USER_HOME: /home/build/.gradle
+    # melange mounts --cache-dir here; CI persists it between runs, so the
+    # Gradle distribution and Maven dependencies aren't re-downloaded.
+    GRADLE_USER_HOME: /var/cache/melange/gradle
 
 pipeline:
   - uses: git-checkout

@@ -1,7 +1,14 @@
 name: Set up build tools
 description: >-
   Install the devbox-pinned toolchain (melange, apko, cosign, bubblewrap, ...)
-  and allow melange's bubblewrap sandbox on ubuntu-24.04 runners.
+  and allow melange's bubblewrap sandbox on ubuntu-24.04 runners. With
+  `component`, also restore (and at job end save) that component's download
+  cache: Gradle/Go dependencies and melange's build-environment APKs.
+
+inputs:
+  component:
+    description: Component whose build cache to restore and save (optional).
+    default: ""
 
 runs:
   using: composite
@@ -19,3 +26,13 @@ runs:
       run: |
         sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
         devbox run -- bwrap --unshare-user --bind / / true
+
+    # Keyed on melange.yaml: an upstream bump starts from the previous
+    # version's cache (restore-keys) and saves a new entry. PR runs can read
+    # main's caches but only write their own, so PRs can't poison main.
+    - if: inputs.component != ''
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: .cache
+        key: melange-${{ inputs.component }}-${{ hashFiles(format('components/{0}/melange.yaml', inputs.component)) }}
+        restore-keys: melange-${{ inputs.component }}-

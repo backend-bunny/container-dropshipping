@@ -55,3 +55,11 @@ Append-only, newest last. Format: `## [YYYY-MM-DD] <kind> | <subject>`.
   documentation to each `apko.yaml`, plus `image.version` from the build
   scripts; `hack/test.sh` enforces them. Lock `config.checksum` updated
   (comment/annotation-only config change, package set unchanged).
+
+## [2026-10-23] add | download caches for melange builds
+
+- signal-cli PR build failed: Maven Central returned 403 to the runner
+  (artifact fine from elsewhere; transient IP block). Gradle and Go now keep
+  their downloads in melange's `--cache-dir`, Wolfi build-env APKs go to
+  `--apk-cache-dir`, and CI persists `.cache/` per component with
+  `actions/cache`. See `components/build-pipeline.md` → Download caches.

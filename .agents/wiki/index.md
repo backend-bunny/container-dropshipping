@@ -8,7 +8,7 @@ before troubleshooting; update it after every change (and append to
 
 | Page | Summary |
 |------|---------|
-| [components/build-pipeline.md](components/build-pipeline.md) | hack/ scripts, workflows, devbox toolchain, change discovery, publish/sign flow and gotchas |
+| [components/build-pipeline.md](components/build-pipeline.md) | hack/ scripts, workflows, devbox toolchain, change discovery, publish/sign flow, download caches and gotchas |
 | [components/tofu-ci.md](components/tofu-ci.md) | OpenTofu 1.13.1 CI toolbox for GitLab Kubernetes-executor jobs; tofu built with melange (not in Wolfi) |
 | [components/signal-cli.md](components/signal-cli.md) | signal-cli, Gradle/JDK 25 from source, jlink-trimmed runtime, distroless |
 

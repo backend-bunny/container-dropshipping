@@ -96,6 +96,10 @@ task lock -- tofu-ci             # regenerate the lockfile
 task lock:all
 ```
 
+Downloads (Gradle/Go dependencies, Wolfi build-environment APKs) are cached
+in `.cache/` (gitignored) and reused across builds; CI persists the same
+directory per component.
+
 melange needs unprivileged user namespaces (bubblewrap). On Ubuntu 24.04:
 `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0`.
 
