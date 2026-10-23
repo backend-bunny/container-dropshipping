@@ -36,3 +36,9 @@ Append-only, newest last. Format: `## [YYYY-MM-DD] <kind> | <subject>`.
 - `hack/publish.sh` now takes the tag's digest from
   `docker buildx imagetools inspect`. Changing `hack/` republishes every
   component, so this also ships correctly signed digests.
+
+## [2026-10-23] docs | AGENTS.md: Renovate scope
+
+- AGENTS.md now states that Renovate owns action SHAs, `# renovate:` comments
+  and image digests, never touches `apko.lock.json` (lock-refresh PR only),
+  and must not automerge tofu-ci tofu bumps (matches `renovate.json`).

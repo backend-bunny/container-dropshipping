@@ -96,6 +96,14 @@ Taskfile.yml        # local build/test entry points, mirroring CI
   those PRs actually being merged. A rebuild against an unchanged lock ships the
   same packages.
 
+## Dependency updates
+
+Renovate (Mend GitHub App) owns version bumps: action SHAs, the `# renovate:`
+comments in `melange.yaml`, and digest-pinned images, configured in
+`renovate.json`. It does **not** touch `apko.lock.json`; those change only
+through the scheduled lock-refresh PR. Never automerge a `tofu-ci` tofu
+version bump.
+
 ## Wiki
 
 Keep `.agents/wiki/` current: after any change, update or create the relevant
