@@ -11,3 +11,6 @@
 
 # Local-only notes
 /kickoff-prompt.md
+
+# devbox environment state (devbox.json + devbox.lock are committed)
+/.devbox/

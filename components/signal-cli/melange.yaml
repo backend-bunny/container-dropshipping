@@ -1,0 +1,112 @@
+package:
+  name: signal-cli
+  # renovate: datasource=github-releases depName=AsamK/signal-cli
+  version: "0.14.9"
+  epoch: 0
+  description: "Command-line and JSON-RPC/HTTP daemon interface for the Signal messenger"
+  dependencies:
+    runtime:
+      - glibc
+      - zlib
+      # libsignal_jni (shipped inside the libsignal-client jar, extracted at
+      # runtime) links libstdc++/libgcc_s — invisible to melange SCA.
+      - libstdc++
+      - libgcc
+
+environment:
+  contents:
+    repositories:
+      - https://packages.wolfi.dev/os
+    keyring:
+      - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+    packages:
+      - build-base
+      - busybox
+      - ca-certificates-bundle
+      - openjdk-25
+      - openjdk-25-default-jvm
+      - zip
+  environment:
+    JAVA_HOME: /usr/lib/jvm/default-jvm
+    GRADLE_USER_HOME: /home/build/.gradle
+
+pipeline:
+  - uses: git-checkout
+    with:
+      repository: https://github.com/AsamK/signal-cli
+      tag: v${{package.version}}
+      expected-commit: ""
+  - name: Build
+    runs: |
+      set -e
+      # Upstream-pinned Gradle via the wrapper (distribution fetched from
+      # services.gradle.org, checksum-validated by the wrapper).
+      ./gradlew --no-daemon --console=plain installDist -x test
+  - name: Link a minimal Java runtime
+    runs: |
+      set -e
+      # Several deps ship module-info.class with requires jdeps can't resolve
+      # from a class path (rxjava3 -> org.reactivestreams, micronaut split
+      # packages). Analyse scratch copies with module-info stripped.
+      mkdir -p /tmp/jdeps
+      cp build/install/signal-cli/lib/*.jar /tmp/jdeps/
+      for jar in /tmp/jdeps/*.jar; do
+        zip -q -d "$jar" 'module-info.class' 'META-INF/versions/*/module-info.class' \
+          >/dev/null 2>&1 || true
+      done
+      CP=$(ls /tmp/jdeps/*.jar | tr '\n' ':')
+      # jdeps prints errors on stdout; keep them visible if it fails.
+      if ! MODULES=$("$JAVA_HOME/bin/jdeps" --multi-release 25 --ignore-missing-deps \
+          --print-module-deps --class-path "$CP" /tmp/jdeps/*.jar); then
+        echo "jdeps failed: $MODULES"
+        exit 1
+      fi
+      # jdeps misses reflective/service-loaded modules; add the usual suspects.
+      MODULES="$MODULES,jdk.unsupported,jdk.naming.dns,jdk.zipfs"
+      echo "jlink modules: $MODULES"
+      "$JAVA_HOME/bin/jlink" \
+        --add-modules "$MODULES" \
+        --add-options="-Djava.awt.headless=true" \
+        --strip-debug --no-header-files --no-man-pages \
+        --output /tmp/jre
+      # java.desktop is needed (java.beans), but its GUI/sound natives link
+      # X11/ALSA/freetype/lcms/jpeg — drop them so melange SCA doesn't pull
+      # those into the image. Headless AWT (libawt_headless) stays.
+      for so in libawt_xawt libjawt libsplashscreen libfontmanager liblcms \
+          libjavajpeg libjsound; do
+        rm -f "/tmp/jre/lib/$so.so"
+      done
+  - name: Install
+    runs: |
+      set -e
+      APP_DIR="${{targets.destdir}}/usr/lib/signal-cli"
+      mkdir -p "$APP_DIR"
+      cp -r build/install/signal-cli/lib "$APP_DIR/lib"
+      cp -r /tmp/jre "$APP_DIR/jre"
+      # Only ship the x86_64 Linux libsignal JNI lib — drop macOS/Windows/test
+      # natives bundled in the libsignal-client jar.
+      for jar in "$APP_DIR"/lib/libsignal-client-*.jar; do
+        zip -q -d "$jar" '*.dll' '*.dylib' '*_testing_*' 2>/dev/null || true
+      done
+  - uses: strip
+
+test:
+  environment:
+    contents:
+      packages:
+        - busybox
+  pipeline:
+    - runs: |
+        set -e
+        JAVA=/usr/lib/signal-cli/jre/bin/java
+        $JAVA --enable-native-access=ALL-UNNAMED \
+          -cp '/usr/lib/signal-cli/lib/*' org.asamk.signal.Main --version
+        # Trust store must be populated for TLS to Signal's servers.
+        n=$(/usr/lib/signal-cli/jre/bin/keytool -list -cacerts -storepass changeit | grep -c trustedCertEntry)
+        echo "cacerts entries: $n"
+        test "$n" -gt 50
+        # Loads libsignal_jni + sqlite natives; fails if a native dep is missing.
+        mkdir -p /tmp/sc-test
+        $JAVA --enable-native-access=ALL-UNNAMED \
+          -cp '/usr/lib/signal-cli/lib/*' org.asamk.signal.Main \
+          --config /tmp/sc-test listAccounts

@@ -1,0 +1,21 @@
+name: Set up build tools
+description: >-
+  Install the devbox-pinned toolchain (melange, apko, cosign, bubblewrap, ...)
+  and allow melange's bubblewrap sandbox on ubuntu-24.04 runners.
+
+runs:
+  using: composite
+  steps:
+    - uses: jetify-com/devbox-install-action@8c6a66ed6273138b1915457069de78cb52fe3bd7 # v0.15.0
+      with:
+        devbox-version: 0.18.4
+        enable-cache: "true"
+
+    # Ubuntu 24.04's AppArmor denies unprivileged user namespaces except to
+    # binaries with a profile; nix's bwrap lives in /nix/store and has none.
+    # The runner VM is ephemeral, so lifting the restriction is job-scoped.
+    - name: Allow unprivileged user namespaces (melange bubblewrap)
+      shell: bash
+      run: |
+        sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+        devbox run -- bwrap --unshare-user --bind / / true

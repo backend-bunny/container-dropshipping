@@ -1,0 +1,100 @@
+name: publish
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-24.04
+    outputs:
+      components: ${{ steps.discover.outputs.components }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: discover
+        env:
+          # Empty on workflow_dispatch: rebuild everything.
+          BASE: ${{ github.event.before }}
+        run: |
+          components=$(hack/discover.sh "$BASE")
+          echo "components=$components" >> "$GITHUB_OUTPUT"
+          echo "components: $components"
+
+  publish:
+    needs: discover
+    if: needs.discover.outputs.components != '[]'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        component: ${{ fromJSON(needs.discover.outputs.components) }}
+    name: publish (${{ matrix.component }})
+    # Two pushes never race the same component's publish; queue, don't cancel.
+    concurrency:
+      group: publish-${{ matrix.component }}-${{ github.ref }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: write # push to GHCR
+      id-token: write # keyless cosign + provenance
+      attestations: write # GitHub artifact attestation
+    env:
+      COMPONENT: ${{ matrix.component }}
+      IMAGE: ghcr.io/backend-bunny/${{ matrix.component }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-tools
+      - name: Build (melange + apko from lockfile)
+        run: devbox run -- hack/build.sh "$COMPONENT"
+      - name: Test image
+        run: devbox run -- hack/test.sh "$COMPONENT"
+
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Publish
+        id: publish
+        run: |
+          devbox run -- hack/publish.sh "$COMPONENT"
+          echo "digest=$(cat "out/$COMPONENT/digest")" >> "$GITHUB_OUTPUT"
+
+      - name: Sign and attach SBOM (keyless cosign)
+        env:
+          DIGEST: ${{ steps.publish.outputs.digest }}
+        run: |
+          devbox run -- cosign sign --yes "$IMAGE@$DIGEST"
+          devbox run -- cosign attest --yes --type spdxjson \
+            --predicate "out/$COMPONENT/sbom-x86_64.spdx.json" "$IMAGE@$DIGEST"
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.publish.outputs.digest }}
+          push-to-registry: true
+
+      - name: Summary
+        env:
+          DIGEST: ${{ steps.publish.outputs.digest }}
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ### $COMPONENT
+
+          \`$IMAGE@$DIGEST\`
+
+          \`\`\`sh
+          cosign verify $IMAGE@$DIGEST \\
+            --certificate-identity-regexp '^https://github.com/backend-bunny/container-dropshipping/' \\
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com
+          \`\`\`
+          EOF

@@ -1,0 +1,99 @@
+name: lock-refresh
+
+# Re-resolve every component's apko.lock.json against today's Wolfi index and
+# open (or update) one PR with the result. Merging that PR is what ships
+# Wolfi fixes; nothing here publishes.
+
+on:
+  schedule:
+    - cron: "17 5 * * 1" # Mondays 05:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lock-refresh
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    runs-on: ubuntu-24.04
+    outputs:
+      components: ${{ steps.discover.outputs.components }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: discover
+        run: echo "components=$(hack/discover.sh)" >> "$GITHUB_OUTPUT"
+
+  lock:
+    needs: discover
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        component: ${{ fromJSON(needs.discover.outputs.components) }}
+    name: lock (${{ matrix.component }})
+    env:
+      COMPONENT: ${{ matrix.component }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-tools
+      # melange builds the @local packages so apko can resolve their deps.
+      - run: devbox run -- hack/lock.sh "$COMPONENT"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: lock-${{ matrix.component }}
+          path: components/${{ matrix.component }}/apko.lock.json
+          retention-days: 7
+
+  pr:
+    needs: lock
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: lock-*
+          path: ${{ runner.temp }}/locks
+      - name: Apply locks and summarise changes
+        env:
+          LOCKS: ${{ runner.temp }}/locks
+        run: |
+          {
+            echo "Weekly \`apko lock\` refresh against the Wolfi index."
+            echo "CI rebuilds and tests every changed component; merging publishes them."
+            echo
+          } > "$RUNNER_TEMP/body.md"
+          for dir in "$LOCKS"/lock-*; do
+            c=${dir##*/lock-}
+            changes=$(python3 hack/lockfile.py diff "components/$c/apko.lock.json" "$dir/apko.lock.json")
+            cp "$dir/apko.lock.json" "components/$c/apko.lock.json"
+            if [[ -n $changes ]]; then
+              printf '### %s\n\n%s\n\n' "$c" "$changes" >> "$RUNNER_TEMP/body.md"
+            fi
+          done
+          cat "$RUNNER_TEMP/body.md"
+
+      # A PR opened with GITHUB_TOKEN would not trigger the ci workflow, so the
+      # PR is opened as a GitHub App (contents + pull-requests: write).
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: app-token
+        with:
+          app-id: ${{ vars.LOCK_REFRESH_APP_ID }}
+          private-key: ${{ secrets.LOCK_REFRESH_APP_PRIVATE_KEY }}
+      - uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: chore/lock-refresh
+          add-paths: components/*/apko.lock.json
+          commit-message: "chore(deps): refresh apko lockfiles"
+          title: "chore(deps): refresh apko lockfiles"
+          body-path: ${{ runner.temp }}/body.md
+          delete-branch: true

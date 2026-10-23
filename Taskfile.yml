@@ -1,0 +1,60 @@
+version: "3"
+
+# Same scripts as CI (hack/*.sh), same devbox-pinned tools. Run inside
+# `devbox shell`, or prefix: `devbox run -- task build -- tofu-ci`.
+
+vars:
+  COMPONENT: "{{.CLI_ARGS}}"
+  COMPONENTS:
+    sh: find components -mindepth 2 -maxdepth 2 -name apko.yaml -printf '%h\n' | cut -d/ -f2 | sort
+
+x-preconditions: &preconditions
+  - sh: command -v melange && command -v apko && command -v bwrap
+    msg: "melange/apko/bwrap not on PATH: run inside `devbox shell` (or `devbox run -- task ...`)"
+  - sh: '[ -f "components/{{.COMPONENT}}/apko.yaml" ]'
+    msg: "name a component: task <task> -- <component> (one of: {{.COMPONENTS | catLines}})"
+
+tasks:
+  default:
+    silent: true
+    cmd: task --list
+
+  build:
+    desc: "melange build + test, then apko build from the lock (task build -- <component>)"
+    preconditions: *preconditions
+    cmd: hack/build.sh {{.COMPONENT}}
+
+  test:
+    desc: "Build, then smoke-test the image in Docker (task test -- <component>)"
+    preconditions: *preconditions
+    cmds:
+      - hack/build.sh {{.COMPONENT}}
+      - hack/test.sh {{.COMPONENT}}
+
+  publish-dry-run:
+    desc: "Build + test, then print the tags CI would push (task publish-dry-run -- <component>)"
+    preconditions: *preconditions
+    cmds:
+      - hack/build.sh {{.COMPONENT}}
+      - hack/test.sh {{.COMPONENT}}
+      - DRY_RUN=1 hack/publish.sh {{.COMPONENT}}
+
+  lock:
+    desc: "Regenerate components/<component>/apko.lock.json (task lock -- <component>)"
+    preconditions: *preconditions
+    cmd: hack/lock.sh {{.COMPONENT}}
+
+  lock:all:
+    desc: Regenerate every component's apko.lock.json
+    cmds:
+      - for: { var: COMPONENTS }
+        task: lock
+        vars: { COMPONENT: "{{.ITEM}}" }
+
+  discover:
+    desc: "List components changed since a base ref (task discover -- origin/main)"
+    cmd: hack/discover.sh {{.CLI_ARGS}}
+
+  clean:
+    desc: Remove build outputs
+    cmd: rm -rf out packages
