@@ -19,3 +19,10 @@ Append-only, newest last. Format: `## [YYYY-MM-DD] <kind> | <subject>`.
   [[troubleshooting/apko-lockfile-local-packages]].
 - Toolchain moved to devbox at the maintainer's request (nixpkgs: melange
   0.59.2, apko 1.2.37, cosign 3.1.3).
+
+## [2026-10-23] fix | ci: test step couldn't find the loaded image
+
+- First PR run: build (melange + lock merge + apko 1.2.37) passed for both
+  components; `Test image` failed with `No such image: …:build`. apko's
+  tarball loads under a different tag. `hack/test.sh` now uses the name from
+  `docker load` output.

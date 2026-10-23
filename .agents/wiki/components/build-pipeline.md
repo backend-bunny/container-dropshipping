@@ -71,4 +71,7 @@ cancelled).
   `@local ./packages` is relative to the repo root: run scripts from there.
 - **Transient `apko InitKeyring` nil-pointer panic** was seen once in repack
   CI (concurrent keyring write). Retry before debugging.
+- **apko tarballs don't load under the tag you gave `apko build`** (it may add
+  an arch suffix such as `-amd64`). `hack/test.sh` uses the name `docker load`
+  prints. First CI run failed with `No such image: …:build`.
 - **No shell in distroless images**: probes must be `httpGet`/`tcpSocket`.
