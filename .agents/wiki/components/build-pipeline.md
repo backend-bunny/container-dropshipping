@@ -30,6 +30,17 @@ How `components/<name>/` becomes a signed image at `ghcr.io/backend-bunny/<name>
 `hack/test.sh` then loads the tarball into Docker, checks `User` is 65532
 and runs `components/<name>/test.sh`.
 
+## OCI annotations
+
+Each `apko.yaml` declares `org.opencontainers.image.{title,description,licenses,vendor,url,documentation}`
+under `annotations:`. `build.sh`/`publish.sh` add `image.version` (from
+`melange.yaml`), and apko adds `image.created` plus, via `--vcs`,
+`image.source`/`image.revision` (index only). apko writes the `annotations:`
+to the index, the per-arch manifest **and** the config `Labels`
+(checked with apko 1.2.37). GHCR shows the index's `description` on the
+package page. `hack/test.sh` fails if title/description/licenses/url (and
+version, when there is one) are missing, so new components must set them.
+
 ## Workflows
 
 | Workflow | Trigger | Permissions | Does |

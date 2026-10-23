@@ -32,8 +32,9 @@ echo "::endgroup::"
 echo "::group::apko build ($c)"
 keys=()
 [[ -s $out/melange.rsa.pub ]] && keys=(--keyring-append "$out/melange.rsa.pub")
+mapfile -t annotations < <(version_annotation "$c")
 apko build "$dir/apko.yaml" "$REGISTRY/$c:build" "$out/image.tar" \
-  --arch "$ARCH" --lockfile "$out/build.lock.json" "${keys[@]}" \
+  --arch "$ARCH" --lockfile "$out/build.lock.json" "${keys[@]}" "${annotations[@]}" \
   --sbom-path "$out"
 echo "::endgroup::"
 

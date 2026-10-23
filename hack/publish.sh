@@ -30,8 +30,9 @@ fi
 keys=()
 [[ -s $out/melange.rsa.pub ]] && keys=(--keyring-append "$out/melange.rsa.pub")
 # SBOMs come from hack/build.sh and are attached with cosign, not by apko.
+mapfile -t annotations < <(version_annotation "$c")
 apko publish "$dir/apko.yaml" "${refs[@]}" \
-  --arch "$ARCH" --lockfile "$out/build.lock.json" "${keys[@]}" \
+  --arch "$ARCH" --lockfile "$out/build.lock.json" "${keys[@]}" "${annotations[@]}" \
   --sbom=false --image-refs "$out/image-refs"
 
 # The tags point at an image index. apko's --image-refs lists the per-arch

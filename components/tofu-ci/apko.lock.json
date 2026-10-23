@@ -2,7 +2,7 @@
   "version": "v1",
   "config": {
     "name": "components/tofu-ci/apko.yaml",
-    "checksum": "sha256-Pv/49GFmTzXj0b6GxZM4UgLA1Kamok6oGDSugJKuqJc="
+    "checksum": "sha256-TW7Pa1un/Ha+bAratOfSF6xmhCgQF9K2OSD5TD20nwA="
   },
   "contents": {
     "keyring": [

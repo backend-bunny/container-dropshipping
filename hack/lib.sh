@@ -24,6 +24,14 @@ component_version() {
   awk '/^  version:/ { gsub(/"/, "", $2); print $2; exit }' "$melange"
 }
 
+# apko arguments adding the upstream version as an OCI annotation (and label),
+# for components that have one. Usage: mapfile -t args < <(version_annotation c)
+version_annotation() {
+  local version
+  version=$(component_version "$1")
+  [[ -z $version ]] || printf '%s\n' --annotations "org.opencontainers.image.version:$version"
+}
+
 # Build (and, unless $4 is "notest", test) component $1's melange package
 # into ./packages, signed with a throwaway key. The private key is deleted as
 # soon as the APKs are signed; its public half is copied to $3 for apko.

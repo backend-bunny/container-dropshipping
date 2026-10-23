@@ -47,3 +47,11 @@ Append-only, newest last. Format: `## [YYYY-MM-DD] <kind> | <subject>`.
 - README, component READMEs, apko.yaml comment and wiki no longer name
   consumers, clusters, the predecessor repo or the replaced upstream image;
   tofu-ci is described by its runtime contract only.
+
+## [2026-10-23] add | standard OCI annotations
+
+- Published images only carried apko's automatic `created`/`source`/
+  `revision`. Added title, description, licenses, vendor, url and
+  documentation to each `apko.yaml`, plus `image.version` from the build
+  scripts; `hack/test.sh` enforces them. Lock `config.checksum` updated
+  (comment/annotation-only config change, package set unchanged).
