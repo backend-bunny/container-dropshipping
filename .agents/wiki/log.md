@@ -87,3 +87,11 @@ Append-only, newest last. Format: `## [YYYY-MM-DD] <kind> | <subject>`.
 - tofu-ci `melange.yaml`: the commit moved to `vars.expected-commit` right
   below `package.version`. `renovate.json` now uses one regex with an optional
   commit group. See `troubleshooting/renovate-update-failure.md`.
+
+## [2026-10-24] docs | README header image
+
+- Added `docs/assets/header.svg` (customs-declaration banner) at the top of
+  `README.md`. It is a hand-written SVG with no external fonts or assets.
+  Every checkbox on it must hold for every image: "pinned packages" (apko
+  lockfile) and "SBOM, provenance, signature" are ticked; "Dockerfile",
+  "root" and "apt" are struck. Not "shell": tofu-ci is a toolbox.
