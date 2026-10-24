@@ -95,3 +95,14 @@ Append-only, newest last. Format: `## [YYYY-MM-DD] <kind> | <subject>`.
   Every checkbox on it must hold for every image: "pinned packages" (apko
   lockfile) and "SBOM, provenance, signature" are ticked; "Dockerfile",
   "root" and "apt" are struck. Not "shell": tofu-ci is a toolbox.
+
+## [2026-10-24] change | lock-refresh PRs request maintainer review
+
+- First refresh PR (#11: brotli 1.2.1-r0 → r1 in tofu-ci) needed the repo
+  setting "Allow GitHub Actions to create and approve pull requests"; its
+  dispatched `ci` ran green on ubuntu-26.04 runners, and a duplicate
+  `pull_request` run sat awaiting approval (harmless; see build-pipeline
+  gotchas).
+- `create-pull-request` now sets `reviewers`/`assignees: backend-bunny`, so
+  the maintainer is emailed the bump list. Merging stays manual; automerge
+  options are recorded in [[decisions/lockfiles-refresh-prs]].

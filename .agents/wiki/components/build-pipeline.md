@@ -81,6 +81,17 @@ cancelled).
 
 ## Gotchas
 
+- **Lock-refresh PRs show "1 workflow awaiting approval".** Besides the
+  `ci` run that `lock-refresh` dispatches, GitHub creates a `pull_request` run
+  for the bot's PR and parks it for approval (author: `github-actions[bot]`).
+  It's a duplicate: the dispatched run puts `ci-ok` on the same head commit.
+  Leave it or cancel it; approving it just builds everything twice. First
+  seen on PR #11 (2026-10-24).
+- **"GitHub Actions is not permitted to create or approve pull requests"**
+  from `lock-refresh`'s `pr` job: enable Settings → Actions → General →
+  "Allow GitHub Actions to create and approve pull requests" (and in the org
+  settings if it is greyed out).
+
 - **melange needs unprivileged user namespaces.** Ubuntu 24.04 AppArmor blocks
   them for binaries without a profile, and devbox's bwrap lives in
   `/nix/store`. `setup-tools` runs

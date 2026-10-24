@@ -45,6 +45,27 @@ Actions to create and approve pull requests"**.
 A GitHub App token (PR events trigger normally) was the first design, but it
 needs an App plus a private-key secret. Dispatching needs neither.
 
+### Who merges it
+
+The PR requests review from and is assigned to `backend-bunny`
+(`reviewers:`/`assignees:` on `create-pull-request`), so GitHub emails the
+maintainer the PR, including the bump list, whenever it's created or updated.
+The maintainer checks `ci-ok` and merges by hand; merging triggers `publish`.
+
+Automerge was considered (2026-10-24) and not adopted for now. A workflow
+on `workflow_run` of `ci` could merge the bot's lockfile-only PR once the
+dispatched run passes, and then dispatch `publish`, because GITHUB_TOKEN
+merges don't fire `push`. Variants:
+
+- **all bumps**: CI is the only gate;
+- **rebuild-only bumps** (`-rN` changes, no added/removed packages): new
+  upstream versions and renamed packages still wait for a human.
+
+Risk is bounded because consumers pin by digest, but the review step would
+be gone. Revisit if weekly merging becomes a chore. Branch protection
+requiring an approving review would block it, because the bot can't approve
+its own PR.
+
 ### Why not Renovate?
 
 Renovate has no apko manager yet. **We are waiting on

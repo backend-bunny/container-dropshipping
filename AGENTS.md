@@ -113,7 +113,10 @@ tofu version bump.
 Renovate does **not** touch `apko.lock.json` yet: it has no apko manager.
 **We are waiting on [renovatebot/renovate#38142](https://github.com/renovatebot/renovate/pull/38142)** (draft as of 2026-10-23), which adds an
 `apk` datasource and an `apko` manager that can update `apko.lock.json`.
-Until it lands, the `lock-refresh` workflow owns the locks. It opens the PR
+Until it lands, the `lock-refresh` workflow owns the locks. Its PR requests
+review from the maintainer (`backend-bunny`, which sends an email) and is
+**merged by hand** after checking the bump list and `ci-ok`. Automerge was
+considered and deliberately not adopted for now. It opens the PR
 with `GITHUB_TOKEN` (no App, no secret) and dispatches `ci` on the branch,
 because `GITHUB_TOKEN` pushes don't trigger `pull_request` workflows. When it
 lands, check how it handles our `@local` packages: `apko lock` needs the
