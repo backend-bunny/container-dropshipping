@@ -42,3 +42,13 @@ Append-only, newest last. Format: `## [YYYY-MM-DD] <kind> | <subject>`.
 - AGENTS.md now states that Renovate owns action SHAs, `# renovate:` comments
   and image digests, never touches `apko.lock.json` (lock-refresh PR only),
   and must not automerge tofu-ci tofu bumps (matches `renovate.json`).
+
+## [2026-10-24] fix | renovate: melange version + commit in one regex span
+
+- The Dependency Dashboard showed `opentofu/opentofu` v1.13.2 as Errored
+  ("Error updating branch: update failure"). The `combination` strategy kept
+  only the `expected-commit` line as the replace span, so the version could
+  never be bumped.
+- tofu-ci `melange.yaml`: the commit moved to `vars.expected-commit` right
+  below `package.version`. `renovate.json` now uses one regex with an optional
+  commit group. See `troubleshooting/renovate-update-failure.md`.

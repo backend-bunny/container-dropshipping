@@ -8,12 +8,10 @@
   "customManagers": [
     {
       "customType": "regex",
-      "description": "Upstream versions in melange configs (inline # renovate: comments), plus the tag's commit when expected-commit is pinned",
+      "description": "Upstream versions in melange configs (inline # renovate: comments), plus the tag's commit when vars.expected-commit directly follows. One regex, so the replaced span covers both (combination keeps only the last match's span and fails the update)",
       "managerFilePatterns": ["/^components/[^/]+/melange\\.yaml$/"],
-      "matchStringsStrategy": "combination",
       "matchStrings": [
-        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)( versioning=(?<versioning>\\S+))?\\s+version:\\s*\"(?<currentValue>[^\"]+)\"",
-        "expected-commit:\\s*(?<currentDigest>[0-9a-f]{40})"
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)( versioning=(?<versioning>\\S+))?\\s+version:\\s*\"(?<currentValue>[^\"]+)\"(\\s+vars:\\s+expected-commit:\\s*(?<currentDigest>[0-9a-f]{40}))?"
       ],
       "extractVersionTemplate": "^v?(?<version>.*)$",
       "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}"

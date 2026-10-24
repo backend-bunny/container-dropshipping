@@ -25,3 +25,4 @@ before troubleshooting; update it after every change (and append to
 | Page | Summary |
 |------|---------|
 | [troubleshooting/apko-lockfile-local-packages.md](troubleshooting/apko-lockfile-local-packages.md) | How `apko build --lockfile` treats melange-built `@local` packages (control hash enforced, silent drops), and the merge workaround |
+| [troubleshooting/renovate-update-failure.md](troubleshooting/renovate-update-failure.md) | Renovate "Error updating branch: update failure" on melange version + `expected-commit`: one regex span, not `combination` |
