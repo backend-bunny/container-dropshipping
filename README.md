@@ -9,7 +9,7 @@ keyless cosign, published to GHCR.
 
 | Component | Image | What | Shell? |
 |-----------|-------|------|--------|
-| [`tofu-ci`](components/tofu-ci/README.md) | `ghcr.io/backend-bunny/tofu-ci` | OpenTofu 1.13.1 + age/curl/jq/git/ssh for `nix-hosts` GitLab CI | yes (toolbox exception) |
+| [`tofu-ci`](components/tofu-ci/README.md) | `ghcr.io/backend-bunny/tofu-ci` | OpenTofu 1.13.1 + age/curl/jq/git/ssh for GitLab CI jobs | yes (toolbox exception) |
 | [`signal-cli`](components/signal-cli/README.md) | `ghcr.io/backend-bunny/signal-cli` | Signal messenger CLI / JSON-RPC daemon | no (distroless) |
 
 Every image runs as uid/gid **65532** and is built for `x86_64` only.
@@ -69,8 +69,11 @@ commit installs exactly the reviewed Wolfi package versions and checksums.
   resolves no longer match the lock. Fix: `task lock -- <name>` in the same PR.
 - `lock-refresh` runs every Monday (and on demand). It re-locks every
   component and opens or updates **one** PR, `chore/lock-refresh`, listing the
-  package bumps. CI tests it like any PR; **merging it publishes** the
-  updated images. Images only pick up Wolfi security fixes when these PRs are
+  package bumps. It then dispatches `ci` on that branch (PRs pushed with
+  `GITHUB_TOKEN` don't trigger CI on their own), so it's tested like any PR;
+  **merging it publishes** the updated images. Renovate doesn't manage apko
+  lockfiles yet. We're waiting on
+  [renovatebot/renovate#38142](https://github.com/renovatebot/renovate/pull/38142). Images only pick up Wolfi security fixes when these PRs are
   merged.
 
 ## Dependency updates
@@ -95,6 +98,10 @@ task publish-dry-run -- tofu-ci  # + print the tags CI would push
 task lock -- tofu-ci             # regenerate the lockfile
 task lock:all
 ```
+
+Downloads (Gradle/Go dependencies, Wolfi build-environment APKs) are cached
+in `.cache/` (gitignored) and reused across builds; CI persists the same
+directory per component.
 
 melange needs unprivileged user namespaces (bubblewrap). On Ubuntu 24.04:
 `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0`.

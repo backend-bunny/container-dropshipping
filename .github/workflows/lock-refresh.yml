@@ -43,6 +43,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-tools
+        with:
+          component: ${{ matrix.component }}
       # melange builds the @local packages so apko can resolve their deps.
       - run: devbox run -- hack/lock.sh "$COMPONENT"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -54,6 +56,10 @@ jobs:
   pr:
     needs: lock
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write # push chore/lock-refresh
+      pull-requests: write # open/update the PR
+      actions: write # dispatch ci on the PR branch
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -81,19 +87,26 @@ jobs:
           done
           cat "$RUNNER_TEMP/body.md"
 
-      # A PR opened with GITHUB_TOKEN would not trigger the ci workflow, so the
-      # PR is opened as a GitHub App (contents + pull-requests: write).
-      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
-        id: app-token
-        with:
-          app-id: ${{ vars.LOCK_REFRESH_APP_ID }}
-          private-key: ${{ secrets.LOCK_REFRESH_APP_PRIVATE_KEY }}
+      # Opened with GITHUB_TOKEN (needs the repo setting "Allow GitHub Actions
+      # to create and approve pull requests").
       - uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        id: pr
         with:
-          token: ${{ steps.app-token.outputs.token }}
           branch: chore/lock-refresh
           add-paths: components/*/apko.lock.json
           commit-message: "chore(deps): refresh apko lockfiles"
           title: "chore(deps): refresh apko lockfiles"
           body-path: ${{ runner.temp }}/body.md
           delete-branch: true
+
+      # Pushes made with GITHUB_TOKEN don't trigger `pull_request` workflows,
+      # but workflow_dispatch is exempt: run ci on the branch ourselves. Its
+      # check runs land on the PR's head commit, so `ci-ok` gates the merge.
+      - name: Run ci on the refresh PR
+        if: steps.pr.outputs.pull-request-operation == 'created' || steps.pr.outputs.pull-request-operation == 'updated'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ steps.pr.outputs.pull-request-url }}
+        run: |
+          gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref chore/lock-refresh
+          echo "ci dispatched for $PR_URL"

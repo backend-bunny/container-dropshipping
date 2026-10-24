@@ -3,6 +3,10 @@
 ARCH=x86_64
 REGISTRY=${REGISTRY:-ghcr.io/backend-bunny}
 MELANGE_RUNNER=${MELANGE_RUNNER:-bubblewrap}
+# Download caches reused across builds (CI restores/saves this dir per
+# component): language deps at /var/cache/melange inside the build, and the
+# Wolfi APKs for melange's build environment.
+CACHE_DIR=${CACHE_DIR:-.cache}
 
 # Reproducible timestamps for melange and apko: the commit being built.
 SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-$(git log -1 --format=%ct)}
@@ -24,6 +28,14 @@ component_version() {
   awk '/^  version:/ { gsub(/"/, "", $2); print $2; exit }' "$melange"
 }
 
+# apko arguments adding the upstream version as an OCI annotation (and label),
+# for components that have one. Usage: mapfile -t args < <(version_annotation c)
+version_annotation() {
+  local version
+  version=$(component_version "$1")
+  [[ -z $version ]] || printf '%s\n' --annotations "org.opencontainers.image.version:$version"
+}
+
 # Build (and, unless $4 is "notest", test) component $1's melange package
 # into ./packages, signed with a throwaway key. The private key is deleted as
 # soon as the APKs are signed; its public half is copied to $3 for apko.
@@ -37,8 +49,10 @@ build_packages() {
   local key=$tmp/keygen
   mkdir -p "$key"
   (cd "$key" && melange keygen >/dev/null)
+  mkdir -p "$CACHE_DIR/melange/$c" "$CACHE_DIR/apk"
   melange build "$dir/melange.yaml" \
     --arch "$ARCH" --runner "$MELANGE_RUNNER" --empty-workspace \
+    --cache-dir "$CACHE_DIR/melange/$c" --apk-cache-dir "$CACHE_DIR/apk" \
     --signing-key "$key/melange.rsa" --out-dir packages
   cp "$key/melange.rsa.pub" "$pub"
   rm -rf "$key"

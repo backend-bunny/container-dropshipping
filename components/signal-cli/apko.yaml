@@ -8,6 +8,16 @@ contents:
   packages:
     - signal-cli@local
 
+# OCI annotations (also written as config labels). apko adds
+# image.source/revision/created; build.sh/publish.sh add image.version.
+annotations:
+  org.opencontainers.image.title: signal-cli
+  org.opencontainers.image.description: "signal-cli (Signal messenger CLI and JSON-RPC/HTTP daemon), distroless and non-root"
+  org.opencontainers.image.licenses: GPL-3.0-only
+  org.opencontainers.image.vendor: backend-bunny
+  org.opencontainers.image.url: https://github.com/backend-bunny/container-dropshipping/tree/main/components/signal-cli
+  org.opencontainers.image.documentation: https://github.com/backend-bunny/container-dropshipping/blob/main/components/signal-cli/README.md
+
 accounts:
   groups:
     - groupname: nonroot

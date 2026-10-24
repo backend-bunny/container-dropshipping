@@ -53,6 +53,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-tools
+        with:
+          component: ${{ matrix.component }}
       - name: Build (melange + apko from lockfile)
         run: devbox run -- hack/build.sh "$COMPONENT"
       - name: Test image

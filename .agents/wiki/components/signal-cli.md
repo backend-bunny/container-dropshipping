@@ -6,7 +6,7 @@ tags: [signal-cli, java, gradle, jlink, from-source, distroless]
 
 # signal-cli image
 
-Repacks [AsamK/signal-cli](https://github.com/AsamK/signal-cli) — CLI and
+Rebuilds [AsamK/signal-cli](https://github.com/AsamK/signal-cli) — CLI and
 JSON-RPC/HTTP daemon for the Signal messenger — into a distroless, non-root
 image built from source. Upstream ships no official container image.
 
@@ -47,7 +47,7 @@ Entrypoint ends in `--config /var/lib/signal-cli`, so k8s `args:` replace only
 the subcommand, e.g. register/link a device once:
 
 ```
-args: ["-a", "+46...", "link", "-n", "mys-molnet"]
+args: ["-a", "+46...", "link", "-n", "<device-name>"]
 ```
 
 ## Gotchas
@@ -81,6 +81,5 @@ args: ["-a", "+46...", "link", "-n", "mys-molnet"]
   means a module needs adding there.
 - **Upstream needs JDK 25** (since 0.14.x). Bump the Wolfi JDK package if a
   future release raises it.
-- **Ported from repack** (2026-10-23): configs unchanged except the keyring.
-  The ephemeral melange pubkey is passed with `--keyring-append`, not listed in
-  `apko.yaml`.
+- **Ephemeral melange key**: the pubkey is passed with `--keyring-append`,
+  not listed in `apko.yaml`.
