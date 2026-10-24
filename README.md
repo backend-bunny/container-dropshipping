@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/header.svg" alt="container-dropshipping: a customs declaration for container images. Contents: pinned packages, SBOM, provenance and signature; no Dockerfile, root or apt. Cleared, cosign verified." width="100%">
+</p>
+
 # container-dropshipping
 
 Upstream tools, dropshipped: repackaged into minimal, non-root Wolfi images
