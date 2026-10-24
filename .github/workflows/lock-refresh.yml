@@ -98,6 +98,10 @@ jobs:
           title: "chore(deps): refresh apko lockfiles"
           body-path: ${{ runner.temp }}/body.md
           delete-branch: true
+          # Merged by hand after review: the request emails the maintainer
+          # (with the bump list) on every create/update.
+          reviewers: backend-bunny
+          assignees: backend-bunny
 
       # Pushes made with GITHUB_TOKEN don't trigger `pull_request` workflows,
       # but workflow_dispatch is exempt: run ci on the branch ourselves. Its

@@ -75,7 +75,8 @@ commit installs exactly the reviewed Wolfi package versions and checksums.
   component and opens or updates **one** PR, `chore/lock-refresh`, listing the
   package bumps. It then dispatches `ci` on that branch (PRs pushed with
   `GITHUB_TOKEN` don't trigger CI on their own), so it's tested like any PR;
-  **merging it publishes** the updated images. Renovate doesn't manage apko
+  **merging it publishes** the updated images. The PR requests review from
+  the maintainer, who gets an email with the bump list and merges it by hand. Renovate doesn't manage apko
   lockfiles yet. We're waiting on
   [renovatebot/renovate#38142](https://github.com/renovatebot/renovate/pull/38142). Images only pick up Wolfi security fixes when these PRs are
   merged.
