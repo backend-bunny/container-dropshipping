@@ -29,8 +29,10 @@ If Wolfi gains a matching `opentofu-1.13`, switching to it is an option.
 Melange would then no longer be needed for tofu.
 
 Renovate: `datasource=github-tags`, which updates `version` and
-`expected-commit` together. Minor/major bumps need Dependency Dashboard
-approval.
+`vars.expected-commit` together. Minor/major bumps need Dependency Dashboard
+approval. `version` must stay the last key of `package:`, with `vars:` and
+`expected-commit` directly below it, because the regex manager matches both
+in one span (see `troubleshooting/renovate-update-failure.md`).
 
 ## Toolbox exception
 
