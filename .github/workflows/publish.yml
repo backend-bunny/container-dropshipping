@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   discover:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       components: ${{ steps.discover.outputs.components }}
     steps:
@@ -30,7 +30,7 @@ jobs:
   publish:
     needs: discover
     if: needs.discover.outputs.components != '[]'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:

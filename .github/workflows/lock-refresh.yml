@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   discover:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       components: ${{ steps.discover.outputs.components }}
     steps:
@@ -30,7 +30,7 @@ jobs:
 
   lock:
     needs: discover
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
@@ -55,7 +55,7 @@ jobs:
 
   pr:
     needs: lock
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: write # push chore/lock-refresh
       pull-requests: write # open/update the PR
