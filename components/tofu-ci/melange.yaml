@@ -9,9 +9,9 @@ package:
   # Keep version last and vars.expected-commit right below it: Renovate's
   # regex must match both in one span to bump them together.
   # renovate: datasource=github-tags depName=opentofu/opentofu
-  version: "1.13.1"
+  version: "1.13.2"
 vars:
-  expected-commit: 233700b795b6d2372f1c56ed57a4abaec9d36475
+  expected-commit: 765062032c46cacab116b36d714db098b806dede
 
 environment:
   contents:
