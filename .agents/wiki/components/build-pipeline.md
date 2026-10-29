@@ -95,6 +95,15 @@ cancelled).
   It's a duplicate: the dispatched run puts `ci-ok` on the same head commit.
   Leave it or cancel it; approving it just builds everything twice. First
   seen on PR #11 (2026-10-24).
+- **"lock is out of step with the resolved package set" on an unrelated
+  PR.** Between refresh PRs, Wolfi can rebuild a package with a new
+  dependency. Every build of that component then fails the `lockfile.py merge`
+  check, including a publish from `main`. Pinned version bumps alone don't
+  fail it; a package added to or dropped from the set does. A PR touching
+  `hack/`, `.github/` or `devbox.*` rebuilds every component and hits it
+  first. Fix: dispatch `lock-refresh`, merge its PR, rebase. Don't relock an
+  unrelated component inside the feature PR. Seen 2026-10-29: tofu-ci needed
+  `lmdb` (new dependency after Wolfi rebuilds), first caught by the haproxy PR.
 - **"GitHub Actions is not permitted to create or approve pull requests"**
   from `lock-refresh`'s `pr` job: enable Settings → Actions → General →
   "Allow GitHub Actions to create and approve pull requests" (and in the org

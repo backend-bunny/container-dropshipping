@@ -128,3 +128,11 @@ Append-only, newest last. Format: `## [YYYY-MM-DD] <kind> | <subject>`.
 - Committed `.envrc` (`eval "$(devbox generate direnv --print-envrc)"`):
   `direnv allow` loads the devbox toolchain on `cd`. Noted in `README.md`
   and [[decisions/devbox-toolchain]].
+
+## [2026-10-29] incident | tofu-ci lock drift (lmdb)
+
+- haproxy PR CI failed in `build (tofu-ci)`: `not in lock: lmdb (x86_64)`.
+  Wolfi rebuilds since #13 added `lmdb` to tofu-ci's resolved set. The
+  haproxy PR changes `hack/`, so every component was rebuilt. Fix:
+  dispatch `lock-refresh`, merge, then rebase. Gotcha added to
+  [[components/build-pipeline]].
