@@ -17,7 +17,8 @@ signature behaviour), so CI and local builds must use the same versions.
 `devbox.json` + `devbox.lock` (nixpkgs) pin melange, apko, cosign, go-task,
 bubblewrap, python3 and jq. CI installs them with
 `jetify-com/devbox-install-action` (`.github/actions/setup-tools`) and runs
-everything as `devbox run -- hack/...`. Developers use `devbox shell`.
+everything as `devbox run -- hack/...`. Developers use `devbox shell`, or
+direnv with the committed `.envrc` (`devbox generate direnv --print-envrc`).
 Renovate's `devbox` manager proposes bumps.
 
 ### Why not Chainguard's `setup-melange` + release tarballs?

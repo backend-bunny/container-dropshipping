@@ -15,6 +15,7 @@ keyless cosign, published to GHCR.
 |-----------|-------|------|--------|
 | [`tofu-ci`](components/tofu-ci/README.md) | `ghcr.io/backend-bunny/tofu-ci` | OpenTofu 1.13.1 + age/curl/jq/git/ssh for GitLab CI jobs | yes (toolbox exception) |
 | [`signal-cli`](components/signal-cli/README.md) | `ghcr.io/backend-bunny/signal-cli` | Signal messenger CLI / JSON-RPC daemon | no (distroless) |
+| [`haproxy`](components/haproxy/README.md) | `ghcr.io/backend-bunny/haproxy` | HAProxy 3.4 LTS load balancer (Wolfi package, no melange) | no (distroless) |
 
 Every image runs as uid/gid **65532** and is built for `x86_64` only.
 
@@ -93,10 +94,12 @@ commit installs exactly the reviewed Wolfi package versions and checksums.
 ## Local development
 
 Tools (melange, apko, cosign, task, bubblewrap, ...) are pinned in
-`devbox.json`/`devbox.lock`, the same set CI installs.
+`devbox.json`/`devbox.lock`, the same set CI installs. With
+[direnv](https://direnv.net/), `direnv allow` once and the committed
+`.envrc` loads the devbox environment on `cd`; otherwise run `devbox shell`.
 
 ```sh
-devbox shell
+devbox shell                     # or: direnv allow
 task build -- tofu-ci            # melange build + test, apko build from lock
 task test -- tofu-ci             # + smoke test in Docker
 task publish-dry-run -- tofu-ci  # + print the tags CI would push
