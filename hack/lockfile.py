@@ -20,6 +20,8 @@ apko.yaml and its lock is caught.
       Wolfi packages FRESH resolves differs from COMMITTED's.
   lockfile.py diff OLD NEW
       Print a Markdown list of package changes between two locks.
+  lockfile.py version LOCK PACKAGE
+      Print PACKAGE's locked upstream version (Wolfi's -rN epoch dropped).
 """
 
 import base64
@@ -112,6 +114,14 @@ def diff(old_path, new_path):
             print(f"- `{name}`: {before} → {after}")
 
 
+def version(lock_path, name):
+    for p in load(lock_path)["contents"]["packages"]:
+        if p["name"] == name:
+            print(p["version"].rsplit("-r", 1)[0])
+            return
+    sys.exit(f"error: {name} is not in {lock_path}")
+
+
 if __name__ == "__main__":
     cmd, args = sys.argv[1], sys.argv[2:]
     if cmd == "strip" and len(args) == 2:
@@ -120,5 +130,7 @@ if __name__ == "__main__":
         merge(*args)
     elif cmd == "diff" and len(args) == 2:
         diff(*args)
+    elif cmd == "version" and len(args) == 2:
+        version(*args)
     else:
         sys.exit(__doc__)

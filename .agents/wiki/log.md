@@ -106,3 +106,33 @@ Append-only, newest last. Format: `## [YYYY-MM-DD] <kind> | <subject>`.
 - `create-pull-request` now sets `reviewers`/`assignees: backend-bunny`, so
   the maintainer is emailed the bump list. Merging stays manual; automerge
   options are recorded in [[decisions/lockfiles-refresh-prs]].
+
+## [2026-10-29] add | haproxy component (Wolfi-only)
+
+- `components/haproxy`: HAProxy 3.4 LTS (3.4.7) from Wolfi's
+  `haproxy-3.4-nocaps`, with no melange. `-nocaps` avoids the file
+  capability (EPERM under drop-ALL) and the bash dependency of `haproxy-3.4`.
+- `hack/lib.sh` `component_version` falls back to the locked version of the
+  package named by `# version-package:` in `apko.yaml` (new
+  `hack/lockfile.py version`). Without it a Wolfi-only component would get
+  only `sha-*` tags. See [[components/build-pipeline]].
+- Local check: lock + apko build passed and the publish dry run printed
+  `3.4.7`, `3.4.7-20261029`, `sha-*`. `task test -- haproxy` passed in a
+  regular shell (version, features, no shell, `-c`, live frontend + admin
+  socket, all with `--cap-drop ALL`). In the agent session Docker wasn't
+  reachable and unix sockets are blocked, so only a bwrap rootfs run worked
+  there.
+
+## [2026-10-29] change | direnv `.envrc`
+
+- Committed `.envrc` (`eval "$(devbox generate direnv --print-envrc)"`):
+  `direnv allow` loads the devbox toolchain on `cd`. Noted in `README.md`
+  and [[decisions/devbox-toolchain]].
+
+## [2026-10-29] incident | tofu-ci lock drift (lmdb)
+
+- haproxy PR CI failed in `build (tofu-ci)`: `not in lock: lmdb (x86_64)`.
+  Wolfi rebuilds since #13 added `lmdb` to tofu-ci's resolved set. The
+  haproxy PR changes `hack/`, so every component was rebuilt. Fix:
+  dispatch `lock-refresh`, merge, then rebase. Gotcha added to
+  [[components/build-pipeline]].

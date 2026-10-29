@@ -55,6 +55,14 @@ caches but write PR-scoped ones; main never restores a PR's cache.
 
 ## OCI annotations
 
+**Version of a Wolfi-only component** (no `melange.yaml`, e.g. haproxy):
+`hack/lib.sh` `component_version` reads `# version-package: <name>` from
+`apko.yaml` and prints that package's version from `apko.lock.json` with
+the `-rN` dropped (`hack/lockfile.py version`). A refresh PR that bumps the
+package therefore publishes a new version tag. A Wolfi epoch bump (`-r1`)
+re-points the same version tag, as an `epoch` bump does for melange
+components. Without the comment there is no version tag, only `sha-*`.
+
 Each `apko.yaml` declares `org.opencontainers.image.{title,description,licenses,vendor,url,documentation}`
 under `annotations:`. `build.sh`/`publish.sh` add `image.version` (from
 `melange.yaml`), and apko adds `image.created` plus, via `--vcs`,
@@ -87,6 +95,15 @@ cancelled).
   It's a duplicate: the dispatched run puts `ci-ok` on the same head commit.
   Leave it or cancel it; approving it just builds everything twice. First
   seen on PR #11 (2026-10-24).
+- **"lock is out of step with the resolved package set" on an unrelated
+  PR.** Between refresh PRs, Wolfi can rebuild a package with a new
+  dependency. Every build of that component then fails the `lockfile.py merge`
+  check, including a publish from `main`. Pinned version bumps alone don't
+  fail it; a package added to or dropped from the set does. A PR touching
+  `hack/`, `.github/` or `devbox.*` rebuilds every component and hits it
+  first. Fix: dispatch `lock-refresh`, merge its PR, rebase. Don't relock an
+  unrelated component inside the feature PR. Seen 2026-10-29: tofu-ci needed
+  `lmdb` (new dependency after Wolfi rebuilds), first caught by the haproxy PR.
 - **"GitHub Actions is not permitted to create or approve pull requests"**
   from `lock-refresh`'s `pr` job: enable Settings → Actions → General →
   "Allow GitHub Actions to create and approve pull requests" (and in the org
