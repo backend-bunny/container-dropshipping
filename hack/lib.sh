@@ -21,11 +21,18 @@ component_dir() {
   echo "$dir"
 }
 
-# Upstream version from melange.yaml's package.version (empty if no melange).
+# Upstream version: melange.yaml's package.version or, for Wolfi-only
+# components, the locked version of the package named by apko.yaml's
+# `# version-package: <name>` comment. Empty if neither exists.
 component_version() {
-  local melange=components/$1/melange.yaml
-  [[ -f $melange ]] || return 0
-  awk '/^  version:/ { gsub(/"/, "", $2); print $2; exit }' "$melange"
+  local dir=components/$1 pkg
+  if [[ -f $dir/melange.yaml ]]; then
+    awk '/^  version:/ { gsub(/"/, "", $2); print $2; exit }' "$dir/melange.yaml"
+    return
+  fi
+  pkg=$(awk '/^# version-package:/ { print $3; exit }' "$dir/apko.yaml")
+  [[ -n $pkg ]] || return 0
+  python3 hack/lockfile.py version "$dir/apko.lock.json" "$pkg"
 }
 
 # apko arguments adding the upstream version as an OCI annotation (and label),

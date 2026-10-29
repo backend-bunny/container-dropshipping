@@ -55,6 +55,14 @@ caches but write PR-scoped ones; main never restores a PR's cache.
 
 ## OCI annotations
 
+**Version of a Wolfi-only component** (no `melange.yaml`, e.g. haproxy):
+`hack/lib.sh` `component_version` reads `# version-package: <name>` from
+`apko.yaml` and prints that package's version from `apko.lock.json` with
+the `-rN` dropped (`hack/lockfile.py version`). A refresh PR that bumps the
+package therefore publishes a new version tag. A Wolfi epoch bump (`-r1`)
+re-points the same version tag, as an `epoch` bump does for melange
+components. Without the comment there is no version tag, only `sha-*`.
+
 Each `apko.yaml` declares `org.opencontainers.image.{title,description,licenses,vendor,url,documentation}`
 under `annotations:`. `build.sh`/`publish.sh` add `image.version` (from
 `melange.yaml`), and apko adds `image.created` plus, via `--vcs`,
