@@ -147,3 +147,10 @@ Append-only, newest last. Format: `## [YYYY-MM-DD] <kind> | <subject>`.
   trademark notice) and a License section per component README.
 - Not done yet: our own source bundles and license texts in the images. See
   [[decisions/licensing]].
+
+## [2026-10-30] docs | license disclaimer
+
+- README Licenses section: user-responsibility / no-warranty paragraph,
+  modelled on Docker official images' common license text.
+- [[decisions/licensing]]: comparison with Docker official images and
+  linuxcontainers. Next step is a per-image source manifest.
