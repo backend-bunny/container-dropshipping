@@ -20,6 +20,7 @@ before troubleshooting; update it after every change (and append to
 | [decisions/ephemeral-melange-keys-keyless-cosign.md](decisions/ephemeral-melange-keys-keyless-cosign.md) | Throwaway melange key per build; image trust from keyless cosign + attestations |
 | [decisions/lockfiles-refresh-prs.md](decisions/lockfiles-refresh-prs.md) | Committed apko lockfiles (Wolfi-only), weekly refresh PR via GITHUB_TOKEN + dispatched ci; waiting on Renovate's apko manager (renovatebot/renovate#38142) |
 | [decisions/devbox-toolchain.md](decisions/devbox-toolchain.md) | melange/apko/cosign pinned with devbox (nixpkgs), shared by CI and local |
+| [decisions/licensing.md](decisions/licensing.md) | Repo Apache-2.0; image licenses via annotation + SBOM; README notices; open gap: we don't publish corresponding source yet |
 
 ## Troubleshooting
 

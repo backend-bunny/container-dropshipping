@@ -115,3 +115,33 @@ melange needs unprivileged user namespaces (bubblewrap). On Ubuntu 24.04:
 `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0`.
 
 Operational notes and decisions live in [`.agents/wiki/`](.agents/wiki/index.md).
+
+## Licenses
+
+The configs and scripts in this repository are licensed under
+[Apache-2.0](LICENSE). The images are not: each one redistributes upstream
+software under that software's own license, unchanged in function.
+
+- `org.opencontainers.image.licenses` names the licenses of the image's main
+  software (e.g. `GPL-2.0-or-later` for haproxy).
+- Every package in an image, with its license, is listed in the image's
+  SPDX SBOM attestation:
+
+  ```sh
+  cosign verify-attestation "$IMAGE" --type spdxjson \
+    --certificate-identity-regexp '^https://github.com/backend-bunny/container-dropshipping/' \
+    --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+    | jq -r '.payload | @base64d | fromjson | .predicate.packages[]
+             | "\(.name)\t\(.licenseDeclared)"' | sort -u
+  ```
+
+- Source: packages built here come from the upstream release tag named in
+  the component's `melange.yaml` (built by that recipe). Wolfi packages are
+  built by the recipes in [wolfi-dev/os](https://github.com/wolfi-dev/os),
+  whose source URL and commit each APK also records in its embedded
+  `.melange.yaml`.
+
+These are **unofficial builds**, not affiliated with or endorsed by the
+upstream projects. HAProxy, OpenTofu, Signal and other names are trademarks
+of their respective owners and are used here only to say what an image
+contains.

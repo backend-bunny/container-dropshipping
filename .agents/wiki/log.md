@@ -136,3 +136,14 @@ Append-only, newest last. Format: `## [YYYY-MM-DD] <kind> | <subject>`.
   haproxy PR changes `hack/`, so every component was rebuilt. Fix:
   dispatch `lock-refresh`, merge, then rebase. Gotcha added to
   [[components/build-pipeline]].
+
+## [2026-10-29] change | licensing quick fixes
+
+- Repo licensed Apache-2.0 (`LICENSE`, canonical text from apache.org).
+- signal-cli: `copyright:` in `melange.yaml` (GPL-3.0-only; AGPL-3.0-only
+  for the libsignal-client jar; GPL-2.0-only WITH Classpath-exception-2.0
+  for `jre/`), and the same three in the `licenses` annotation (relocked).
+- README Licenses section (SBOM query, source pointers, unofficial-build /
+  trademark notice) and a License section per component README.
+- Not done yet: our own source bundles and license texts in the images. See
+  [[decisions/licensing]].

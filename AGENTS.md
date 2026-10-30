@@ -33,6 +33,10 @@ Pod Security. Operational knowledge lives in `.agents/wiki/`: read it first.
   public-good Fulcio/Rekor). No long-lived signing keys anywhere. Sign and
   attest the **image index digest** (what the tags point to), with the SBOM
   (apko generates SPDX) and build provenance as attestations.
+- **Declare licenses.** `melange.yaml` sets `copyright:` (one entry per
+  bundled copyleft part), `org.opencontainers.image.licenses` lists the main
+  software's licenses including bundled copyleft parts, and the component
+  README has a License section. See `.agents/wiki/decisions/licensing.md`.
 - **Standard OCI annotations.** Every `apko.yaml` sets
   `org.opencontainers.image.{title,description,licenses,vendor,url,documentation}`
   under `annotations:`. The build scripts add `image.version`, and apko adds
@@ -76,7 +80,7 @@ components/<name>/
   apko.yaml         # always (with OCI annotations)
   apko.lock.json    # always; Wolfi packages only, changed only via PR
   test.sh           # image smoke test (run by hack/test.sh)
-  README.md         # what it is, runtime contract, any exceptions
+  README.md         # what it is, runtime contract, license, any exceptions
 hack/               # build/test/lock/publish/discover scripts shared by CI and Taskfile
 .github/workflows/  # ci (PR), publish (main), lock-refresh (weekly PR)
 .github/actions/    # setup-tools: devbox toolchain, bwrap sysctl, download cache

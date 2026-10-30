@@ -38,3 +38,11 @@ It has **no entrypoint** (`cmd: /bin/sh`): GitLab overrides it (use
 does (script on stdin to `sh`, uid 65532, foreign-owned checkout mounted): it
 checks `id`, each tool, a writable `HOME`, an `age` encrypt/decrypt round trip,
 and `git status` in the checkout.
+
+## License
+
+OpenTofu is MPL-2.0; its source is the upstream tag named in `melange.yaml`.
+The toolbox packages keep their own licenses (busybox and git are
+GPL-2.0-only), listed per package in the image's SBOM attestation, with their
+recipes in [wolfi-dev/os](https://github.com/wolfi-dev/os). This is an
+unofficial build, not affiliated with the OpenTofu project.

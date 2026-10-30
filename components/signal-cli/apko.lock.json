@@ -2,7 +2,7 @@
   "version": "v1",
   "config": {
     "name": "components/signal-cli/apko.yaml",
-    "checksum": "sha256-ts5/1n00+Speps+DD7SPPqAJ/Ap3TYfTWsi/COzlY1A="
+    "checksum": "sha256-G1TEY1N456TkMJHIyx56xR4vHmWulYt/Z6pNPu4uEUU="
   },
   "contents": {
     "keyring": [
