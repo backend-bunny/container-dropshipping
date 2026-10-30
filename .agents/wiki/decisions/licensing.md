@@ -29,6 +29,17 @@ an engineering reading, not legal advice.
 - **Each component README has a License section**, and the root README has a
   Licenses section with the SBOM query and an "unofficial builds / trademarks"
   notice.
+- **User-responsibility disclaimer** in the root README, modelled on Docker
+  official images' common license text ("it is the image user's
+  responsibility to ensure that any use of this image complies with any
+  relevant licenses for all software contained within").
+- **Comparison (2026-10-30):** neither Docker official images nor
+  images.linuxcontainers.org publish source bundles. Docker lists licenses,
+  exact source URLs + SHA256 and snapshot.debian.org links per package in
+  `docker-library/repo-info`. linuxcontainers relies on the distros, whose
+  packages ship license texts (`/usr/share/doc/*/copyright`) and whose
+  archives keep source. Our gaps relative to them: no license texts in the
+  images, coarse source pointers, no source archive.
 
 ## Open gap
 
@@ -36,7 +47,9 @@ an engineering reading, not legal advice.
   upstream tags and the wolfi-dev/os recipes. That is a third-party source
   pointer: acceptable under GPLv3 §6(d) with clear directions, weak under
   GPLv2 §3 (busybox, git) and dependent on others keeping old versions up.
-- **Planned fix:** a publish step that collects each image's sources (every
+- **Next:** a per-image source manifest (repo-info style: per-package
+  upstream URL + commit/SHA from each APK's embedded `.melange.yaml`).
+- **Stronger fix:** a publish step that collects each image's sources (every
   Wolfi APK embeds its `.melange.yaml` with source URL + commit) and pushes
   them as an OCI artifact attached to the image digest.
 - **No license texts in the images:** Wolfi packages don't ship them. A

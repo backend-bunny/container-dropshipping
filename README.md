@@ -145,3 +145,9 @@ These are **unofficial builds**, not affiliated with or endorsed by the
 upstream projects. HAProxy, OpenTofu, Signal and other names are trademarks
 of their respective owners and are used here only to say what an image
 contains.
+
+Besides its main software, every image contains other packages (glibc,
+OpenSSL, and their dependencies), each under its own license. As with any
+pre-built image, it is your responsibility to make sure that your use of an
+image complies with the licenses of all the software it contains. The
+images are provided as is, without warranty: see each license.
