@@ -29,3 +29,18 @@ Image: `ghcr.io/backend-bunny/signal-cli` (pin by digest).
 `melange test` runs `--version`, checks the trust store, and runs
 `listAccounts` (which loads the native libs). `test.sh` re-checks those in the
 image, confirms there is no shell, and waits for the daemon's health endpoint.
+
+## License
+
+- signal-cli: GPL-3.0-only.
+- libsignal-client (bundled jar with the `libsignal_jni` native library):
+  AGPL-3.0-only. It is unmodified apart from the removed non-Linux natives,
+  so AGPL §13 (network use) adds nothing for operators of this image.
+- The jlink'd Java runtime under `/usr/lib/signal-cli/jre`: OpenJDK,
+  GPL-2.0-only WITH Classpath-exception-2.0.
+- Other dependency jars in `/usr/lib/signal-cli/lib` keep their own licenses.
+
+The image's `licenses` annotation and the melange `copyright:` block record
+the three copyleft licenses above. Every Wolfi package's license is in the
+SBOM attestation. Source: the upstream tag named in `melange.yaml`. This is
+an unofficial build, not affiliated with Signal.

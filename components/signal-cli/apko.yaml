@@ -13,7 +13,8 @@ contents:
 annotations:
   org.opencontainers.image.title: signal-cli
   org.opencontainers.image.description: "signal-cli (Signal messenger CLI and JSON-RPC/HTTP daemon), distroless and non-root"
-  org.opencontainers.image.licenses: GPL-3.0-only
+  # signal-cli, libsignal-client (bundled jar) and the jlink'd OpenJDK runtime.
+  org.opencontainers.image.licenses: GPL-3.0-only AND AGPL-3.0-only AND GPL-2.0-only WITH Classpath-exception-2.0
   org.opencontainers.image.vendor: backend-bunny
   org.opencontainers.image.url: https://github.com/backend-bunny/container-dropshipping/tree/main/components/signal-cli
   org.opencontainers.image.documentation: https://github.com/backend-bunny/container-dropshipping/blob/main/components/signal-cli/README.md

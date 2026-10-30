@@ -46,3 +46,11 @@ Image: `ghcr.io/backend-bunny/haproxy` (pin by digest).
 `-v` against the locked version and `-vv` for OpenSSL/Lua/PCRE2, confirms
 there is no shell, validates a config with `-c`, and then serves a live HTTP
 frontend that also binds an admin socket in `/var/lib/haproxy`.
+
+## License
+
+HAProxy is GPL-2.0-or-later. Its libraries (glibc, OpenSSL, Lua, PCRE2, …)
+keep their own licenses, listed per package in the image's SBOM attestation.
+Source: Wolfi's `haproxy-3.4` recipe in
+[wolfi-dev/os](https://github.com/wolfi-dev/os). This is an unofficial build,
+not affiliated with HAProxy Technologies.

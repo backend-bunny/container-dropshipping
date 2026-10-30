@@ -4,6 +4,16 @@ package:
   version: "0.14.9"
   epoch: 0
   description: "Command-line and JSON-RPC/HTTP daemon interface for the Signal messenger"
+  # signal-cli itself, plus the two bundled parts under copyleft licenses.
+  # The other dependency jars in lib/ carry their own licenses.
+  copyright:
+    - license: GPL-3.0-only
+    - license: AGPL-3.0-only
+      paths:
+        - usr/lib/signal-cli/lib/libsignal-client-*.jar
+    - license: GPL-2.0-only WITH Classpath-exception-2.0
+      paths:
+        - usr/lib/signal-cli/jre/*
   dependencies:
     runtime:
       - glibc
