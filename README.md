@@ -135,11 +135,28 @@ software under that software's own license, unchanged in function.
              | "\(.name)\t\(.licenseDeclared)"' | sort -u
   ```
 
-- Source: packages built here come from the upstream release tag named in
-  the component's `melange.yaml` (built by that recipe). Wolfi packages are
-  built by the recipes in [wolfi-dev/os](https://github.com/wolfi-dev/os),
-  whose source URL and commit each APK also records in its embedded
-  `.melange.yaml`.
+- Source: every image carries a **source manifest** attestation that lists,
+  for each package, its upstream source pinned to a commit or checksum, an
+  archived tarball where one exists, and the build recipe. It also lists
+  third-party code bundled inside a package (e.g. signal-cli's Maven jars and
+  its Java runtime). It is generated from the SBOM by
+  [`hack/sources.py`](hack/sources.py), and builds fail if any source is
+  unpinned:
+
+  ```sh
+  cosign verify-attestation "$IMAGE" \
+    --type https://github.com/backend-bunny/container-dropshipping/sources/v1 \
+    --certificate-identity-regexp '^https://github.com/backend-bunny/container-dropshipping/' \
+    --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+    | jq -r '.payload | @base64d | fromjson | .predicate
+             | (.packages[] | .package as $p | .sources[] | "\($p)\t\(.url)\t\(.ref)\t\(.archive)"),
+               (.bundled[] | "\(.name)@\(.version)\t\(.source)\t\(.ref // "")")'
+  ```
+
+  Packages built here come from the upstream tag and commit named in the
+  component's `melange.yaml`. Wolfi packages are built by the recipes in
+  [wolfi-dev/os](https://github.com/wolfi-dev/os), and Chainguard keeps
+  content-addressed copies of most of their sources on `tarballs.cgr.dev`.
 
 These are **unofficial builds**, not affiliated with or endorsed by the
 upstream projects. HAProxy, OpenTofu, Signal and other names are trademarks

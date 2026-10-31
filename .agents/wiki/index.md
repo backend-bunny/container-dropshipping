@@ -8,7 +8,7 @@ before troubleshooting; update it after every change (and append to
 
 | Page | Summary |
 |------|---------|
-| [components/build-pipeline.md](components/build-pipeline.md) | hack/ scripts, workflows, devbox toolchain, change discovery, publish/sign flow, download caches and gotchas |
+| [components/build-pipeline.md](components/build-pipeline.md) | hack/ scripts, workflows, devbox toolchain, change discovery, publish/sign flow, source manifest, download caches and gotchas |
 | [components/tofu-ci.md](components/tofu-ci.md) | OpenTofu 1.13.1 CI toolbox for GitLab Kubernetes-executor jobs; tofu built with melange (not in Wolfi) |
 | [components/signal-cli.md](components/signal-cli.md) | signal-cli, Gradle/JDK 25 from source, jlink-trimmed runtime, distroless |
 | [components/haproxy.md](components/haproxy.md) | HAProxy 3.4 LTS straight from Wolfi (`-nocaps`, no melange), distroless; version from the lock |
@@ -20,7 +20,7 @@ before troubleshooting; update it after every change (and append to
 | [decisions/ephemeral-melange-keys-keyless-cosign.md](decisions/ephemeral-melange-keys-keyless-cosign.md) | Throwaway melange key per build; image trust from keyless cosign + attestations |
 | [decisions/lockfiles-refresh-prs.md](decisions/lockfiles-refresh-prs.md) | Committed apko lockfiles (Wolfi-only), weekly refresh PR via GITHUB_TOKEN + dispatched ci; waiting on Renovate's apko manager (renovatebot/renovate#38142) |
 | [decisions/devbox-toolchain.md](decisions/devbox-toolchain.md) | melange/apko/cosign pinned with devbox (nixpkgs), shared by CI and local |
-| [decisions/licensing.md](decisions/licensing.md) | Repo Apache-2.0; image licenses via annotation + SBOM; README notices; open gap: we don't publish corresponding source yet |
+| [decisions/licensing.md](decisions/licensing.md) | Repo Apache-2.0; image licenses via annotation + SBOM; README notices; source manifest attestation per image; open: own source archive, license texts in images |
 
 ## Troubleshooting
 

@@ -43,8 +43,13 @@ Pod Security. Operational knowledge lives in `.agents/wiki/`: read it first.
   `created`/`source`/`revision`. `hack/test.sh` fails when they are missing.
 - **Pin everything.**
   - GitHub Actions by full commit SHA with the version in a trailing comment.
-  - Upstream versions in `melange.yaml` with a `# renovate:` inline comment;
-    when `expected-commit` is pinned, Renovate updates it with the version.
+  - Upstream versions in `melange.yaml` with a `# renovate:` inline comment.
+    Every `git-checkout` pins `expected-commit` (as `vars.expected-commit`
+    right below `version`), and Renovate updates it with the version.
+  - **Sources are pinned and listed.** `hack/sources.py` builds each image's
+    source manifest from the SBOM and fails the build on any unpinned source.
+    Third-party code a package bundles without its own APK (Maven jars, a
+    copied JDK) is declared in `/usr/share/doc/<pkg>/bundled-sources.json`.
   - Build tools (melange, apko, cosign, task, bubblewrap, …) in
     `devbox.json` + `devbox.lock`, used by CI and locally. Run tools via
     `devbox run --` / `devbox shell`; don't install them any other way.

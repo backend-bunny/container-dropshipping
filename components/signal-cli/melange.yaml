@@ -1,7 +1,5 @@
 package:
   name: signal-cli
-  # renovate: datasource=github-releases depName=AsamK/signal-cli
-  version: "0.14.9"
   epoch: 0
   description: "Command-line and JSON-RPC/HTTP daemon interface for the Signal messenger"
   # signal-cli itself, plus the two bundled parts under copyleft licenses.
@@ -22,6 +20,12 @@ package:
       # runtime) links libstdc++/libgcc_s — invisible to melange SCA.
       - libstdc++
       - libgcc
+  # Keep version last and vars.expected-commit right below it: Renovate's
+  # regex must match both in one span to bump them together.
+  # renovate: datasource=github-tags depName=AsamK/signal-cli
+  version: "0.14.9"
+vars:
+  expected-commit: 3997429779095ff3a2d64c877126e84fce9852aa
 
 environment:
   contents:
@@ -47,7 +51,7 @@ pipeline:
     with:
       repository: https://github.com/AsamK/signal-cli
       tag: v${{package.version}}
-      expected-commit: ""
+      expected-commit: ${{vars.expected-commit}}
   - name: Build
     runs: |
       set -e
@@ -100,6 +104,58 @@ pipeline:
       for jar in "$APP_DIR"/lib/libsignal-client-*.jar; do
         zip -q -d "$jar" '*.dll' '*.dylib' '*_testing_*' 2>/dev/null || true
       done
+  - name: List bundled third-party sources
+    runs: |
+      set -e
+      # Maven jars in lib/ and the jlink'd JDK have no APK of their own, so the
+      # image SBOM doesn't list them. Declare them for hack/sources.py.
+      cat > /tmp/bundled-sources.gradle <<'GRADLE'
+      import groovy.json.JsonOutput
+      import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+
+      rootProject {
+        tasks.register("bundledSources") {
+          doLast {
+            def entries = configurations.runtimeClasspath.incoming.artifacts.artifacts
+              .collect { it.id.componentIdentifier }
+              .findAll { it instanceof ModuleComponentIdentifier }
+              .unique { it.displayName }
+              .collect { id ->
+                def e = [
+                  name: "${id.group}:${id.module}".toString(),
+                  version: id.version,
+                  purl: "pkg:maven/${id.group}/${id.module}@${id.version}".toString(),
+                  source: "https://repo1.maven.org/maven2/${id.group.replace('.', '/')}/${id.module}/${id.version}/".toString(),
+                ]
+                // AGPL-3.0: point at the real source, not the Maven artifact.
+                if (id.group == "org.signal" && id.module == "libsignal-client") {
+                  e.source = "https://github.com/signalapp/libsignal"
+                  e.ref = "v${id.version}".toString()
+                }
+                e
+              }
+            // The JDK that jlink trimmed into jre/: the Wolfi build package.
+            def db = ["/usr/lib/apk/db/installed", "/lib/apk/db/installed"]
+              .collect { new File(it) }.find { it.exists() }
+            def m = db.text =~ /(?m)^P:openjdk-25\nV:(\S+)/
+            if (!m.find()) throw new GradleException("openjdk-25 not in ${db}")
+            entries << [
+              name: "openjdk-25 (jlink runtime in jre/)",
+              version: m.group(1),
+              purl: "pkg:apk/wolfi/openjdk-25@${m.group(1)}".toString(),
+              source: "https://packages.wolfi.dev/os/x86_64/openjdk-25-${m.group(1)}.apk".toString(),
+            ]
+            file(System.getenv("BUNDLED_OUT")).text = JsonOutput.prettyPrint(JsonOutput.toJson(entries))
+          }
+        }
+      }
+      GRADLE
+      DOC="${{targets.destdir}}/usr/share/doc/signal-cli"
+      mkdir -p "$DOC"
+      BUNDLED_OUT="$DOC/bundled-sources.json" ./gradlew --no-daemon --console=plain \
+        --offline --no-configuration-cache --init-script /tmp/bundled-sources.gradle \
+        -q bundledSources
+      echo "bundled entries: $(grep -c '"purl"' "$DOC/bundled-sources.json")"
   - uses: strip
 
 test:
@@ -117,6 +173,9 @@ test:
         n=$(/usr/lib/signal-cli/jre/bin/keytool -list -cacerts -storepass changeit | grep -c trustedCertEntry)
         echo "cacerts entries: $n"
         test "$n" -gt 50
+        # Bundled jars + JDK are declared for the source manifest.
+        grep -q '"pkg:maven/org.signal/libsignal-client@' /usr/share/doc/signal-cli/bundled-sources.json
+        grep -q '"pkg:apk/wolfi/openjdk-25@' /usr/share/doc/signal-cli/bundled-sources.json
         # Loads libsignal_jni + sqlite natives; fails if a native dep is missing.
         mkdir -p /tmp/sc-test
         $JAVA --enable-native-access=ALL-UNNAMED \
