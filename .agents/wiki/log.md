@@ -194,3 +194,7 @@ Append-only, newest last. Format: `## [YYYY-MM-DD] <kind> | <subject>`.
   the symlink.
 - OpenSSL 4.0 without Wolfi's patches (v3.15.2 already supports it).
 - See [[components/python]].
+- Fix: python-dev lock failed (py3.15-pip's dep went to Wolfi's
+  python-3.15-base). Pinned `python-3.15-base@local` and listed `./packages`
+  also untagged. Lock generated from the user's built APKs, re-signed with a
+  throwaway key in `$TMPDIR`; `apko build` + `sources.py` passed there.

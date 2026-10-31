@@ -61,6 +61,18 @@ only the real file is edited.
 
 ## Gotchas
 
+- **An `@local` package never satisfies an untagged dependency** (go-apk,
+  apko 1.2.37), even after it was selected. python-dev's first `apko lock`
+  failed with "we already selected python-3.15-base=3.15.1_git… which
+  conflicts with python-3.15-base=3.15.2-r0": py3.15-pip's
+  `python-3.15-base`/`cmd:python3.15` deps went to Wolfi. Fix in
+  python-dev's `apko.yaml`: pin `python-3.15-base@local` explicitly **and**
+  list `./packages` a second time untagged. The pins select ours by name
+  (Wolfi's are then "disqualified"), the untagged entry lets Wolfi packages
+  depend on them. Untagged alone would pick whichever version is highest,
+  and Wolfi's `3.15.2_git…` will sort above our `3.15.2`. See
+  [[troubleshooting/apko-lockfile-local-packages]].
+
 - **Symlinked melange.yaml:** `hack/discover.sh` selects a component whose
   symlink target changed. `component_version`, melange and `hashFiles` read
   through the link.

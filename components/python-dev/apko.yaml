@@ -7,10 +7,16 @@ contents:
     - https://packages.wolfi.dev/os
     # melange output; its per-build key is passed with --keyring-append.
     - "@local ./packages"
+    # Also untagged: apko never lets an @local package satisfy an untagged
+    # dependency (py3.15-pip needs cmd:python3.15), even once selected. The
+    # @local pins below still pick ours over a newer Wolfi python-3.15-*.
+    - ./packages
   keyring:
     - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
   packages:
     - python-3.15@local
+    # Named explicitly, so the selected base is ours, not Wolfi's.
+    - python-3.15-base@local
     - python-3.15-dev@local
     - py3.15-pip
     - py3.15-setuptools
