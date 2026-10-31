@@ -131,6 +131,8 @@ pipeline:
                 if (id.group == "org.signal" && id.module == "libsignal-client") {
                   e.source = "https://github.com/signalapp/libsignal"
                   e.ref = "v${id.version}".toString()
+                  // Published outside Maven Central: no POM to read it from.
+                  e.license = "AGPL-3.0-only"
                 }
                 e
               }
@@ -144,6 +146,7 @@ pipeline:
               version: m.group(1),
               purl: "pkg:apk/wolfi/openjdk-25@${m.group(1)}".toString(),
               source: "https://packages.wolfi.dev/os/x86_64/openjdk-25-${m.group(1)}.apk".toString(),
+              license: "GPL-2.0-only WITH Classpath-exception-2.0",
             ]
             file(System.getenv("BUNDLED_OUT")).text = JsonOutput.prettyPrint(JsonOutput.toJson(entries))
           }

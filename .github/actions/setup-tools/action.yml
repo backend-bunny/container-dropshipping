@@ -27,12 +27,14 @@ runs:
         sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
         devbox run -- bwrap --unshare-user --bind / / true
 
-    # Keyed on melange.yaml: an upstream bump starts from the previous
-    # version's cache (restore-keys) and saves a new entry. PR runs can read
-    # main's caches but only write their own, so PRs can't poison main.
+    # Keyed on melange.yaml and the apko lock: an upstream bump or a lock
+    # refresh starts from the previous cache (restore-keys) and saves a new
+    # entry, including newly downloaded source archives (hack/notices.py).
+    # PR runs can read main's caches but only write their own, so PRs can't
+    # poison main.
     - if: inputs.component != ''
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: .cache
-        key: melange-${{ inputs.component }}-${{ hashFiles(format('components/{0}/melange.yaml', inputs.component)) }}
+        key: melange-${{ inputs.component }}-${{ hashFiles(format('components/{0}/melange.yaml', inputs.component), format('components/{0}/apko.lock.json', inputs.component)) }}
         restore-keys: melange-${{ inputs.component }}-

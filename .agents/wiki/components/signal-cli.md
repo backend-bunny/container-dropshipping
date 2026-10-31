@@ -56,6 +56,10 @@ args: ["-a", "+46...", "link", "-n", "<device-name>"]
 
 ## Gotchas
 
+- **libsignal-client and the JDK declare `license` in
+  bundled-sources.json.** libsignal isn't on Maven Central, so there's no POM
+  to read for [[components/build-pipeline]]'s notices. Its `LICENSE` comes
+  from the `signalapp/libsignal` tag archive.
 - **bundled-sources.json comes from a Gradle init script** (`bundledSources`
   task, run `--offline --no-configuration-cache` after `installDist`): resolved
   `runtimeClasspath` module artifacts → Maven purl + Maven Central dir.

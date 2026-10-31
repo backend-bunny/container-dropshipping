@@ -43,7 +43,9 @@ Maven jars + JDK).
   or (bundled) a versioned `pkg:maven`/`pkg:apk` purl. A tag alone is not
   pinned: that's how signal-cli's `expected-commit: ""` was caught.
 - **`tarballs.cgr.dev`** is Chainguard's public, content-addressed source
-  archive (`<sha256>-<commit>.tar.gz`). Most Wolfi sources have a copy there.
+  archive (`<hash>-<commit>.tar.gz`). Most Wolfi sources have a copy there,
+  but not all: gcc's (libgcc, libstdc++) answered 404 on 2026-10-31. The
+  name's hash is **not** the file's SHA256, so it can't verify a download.
   Its retention policy is unknown.
 - `publish` attests `sources.json` on the index digest
   (`--type https://github.com/backend-bunny/container-dropshipping/sources/v1`).
@@ -58,6 +60,36 @@ Maven jars + JDK).
 `hack/test.sh` then loads the tarball into Docker, checks `User` is 65532
 and runs `components/<name>/test.sh`.
 
+## License notices (hack/notices.py)
+
+Runs after `sources.py` and writes `out/<name>/notices.{json,md}`, attested
+as `…/notices/v1`. For each package:
+
+- **Upstream files:** files at the top of its pinned source archive matching
+  `licen[cs]e|copying|copyright|notice` (+ suffix, e.g. glibc's `COPYINGv2`,
+  `LICENSES`), plus a `LICENSES/` dir. Symlinks are skipped (glibc's
+  `COPYING.LIB`). The `checksum=` from the purl is verified when present.
+- **Canonical texts:** always added for each SPDX id in the declared license,
+  from `spdx/license-list-data` pinned by commit. Deprecated GNU ids
+  (`LGPL-2.1`, `GPL-2.0+`) map to `-only`/`-or-later`.
+- **Bundled:** Maven jars get `META-INF` license/notice files from the jar in
+  the image, plus the POM licenses (parents followed, names mapped to SPDX).
+  An entry's own `license` in `bundled-sources.json` wins (libsignal: not on
+  Maven Central). Entries with a GitHub `source` + `ref` get that archive's
+  files. The JDK gets `jre/legal/` from the image.
+- Texts are stored once by SHA256. Sizes on 2026-10-31: haproxy 266 KiB,
+  signal-cli 708 KiB, tofu-ci 737 KiB. **The build fails above 1 MiB** (the
+  attestation predicate), so check this if an image grows.
+- **Fails only if an item has no text at all.** Canonical-only items and
+  404'd archives are warnings in the job summary. Other download errors
+  fail the build after 3 tries, so a network blip can't silently drop a
+  notice.
+- Downloads go to `.cache/notices/{sources,spdx,maven}`, keyed by
+  sha256(URL) (every URL is pinned). A 404 isn't cached, so it is re-checked
+  on every build, in case the archive comes back.
+- Known gap: some MIT/BSD jars (argparse4j, dbus-java) carry no copyright
+  line in the jar or the POM, so they only get the canonical MIT text.
+
 ## Download caches
 
 `hack/lib.sh` passes melange `--cache-dir .cache/melange/<component>` (mounted
@@ -68,7 +100,9 @@ tofu-ci `GOMODCACHE`/`GOCACHE` under `/var/cache/melange`.
 
 CI persists `.cache` per component with `actions/cache` in
 `.github/actions/setup-tools` (input `component`), keyed on the hash of the
-component's `melange.yaml` with a prefix restore key. PR runs read main's
+component's `melange.yaml` **and** `apko.lock.json`, with a prefix restore
+key. Without the lock in the key, a Wolfi-only component (haproxy) had a
+constant key and never saved new source archives. PR runs read main's
 caches but write PR-scoped ones; main never restores a PR's cache.
 
 - **Not cached on purpose:** `melange test` gets no `--apk-cache-dir` (it

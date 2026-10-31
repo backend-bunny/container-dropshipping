@@ -55,9 +55,14 @@ an engineering reading, not legal advice.
 - **Stronger fix:** a publish step that collects each image's sources (every
   Wolfi APK embeds its `.melange.yaml` with source URL + commit) and pushes
   them as an OCI artifact attached to the image digest.
-- **No license texts in the images:** Wolfi packages don't ship them. A
-  melange package that installs them into `/usr/share/licenses` would close
-  this.
+- **Done (2026-10-31): license texts and notices travel with each image**
+  as a `…/notices/v1` attestation (`hack/notices.py`), not inside the image.
+  It holds the upstream license/notice files from each pinned source archive
+  or jar, plus the canonical SPDX texts. Chosen over `/usr/share/licenses`
+  because it fits the SBOM/sources attestations and keeps images minimal.
+  Same download cost either way (41 archives, 79 MiB, cached).
+  - Remaining: a few MIT/BSD jars lack their exact copyright line, and gcc's
+    archive is missing on `tarballs.cgr.dev` (canonical texts only).
 
 ## Consequences
 

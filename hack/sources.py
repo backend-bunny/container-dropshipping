@@ -74,7 +74,7 @@ def source_entry(src):
         or "checksum" in quals
         or archive.startswith("https://tarballs.cgr.dev/")
     )
-    return url, ref, archive, pinned
+    return url, ref, archive, quals.get("checksum", ""), pinned
 
 
 def recipe_entry(recipe):
@@ -123,13 +123,14 @@ def packages(sbom):
             recipe, recipe_commit = recipe_entry(r)
         sources = []
         for src in links.get((apk["SPDXID"], "GENERATED_FROM"), []):
-            url, ref, archive, pinned = source_entry(src)
-            sources.append({"url": url, "ref": ref, "archive": archive, "pinned": pinned})
+            url, ref, archive, checksum, pinned = source_entry(src)
+            sources.append({"url": url, "ref": ref, "archive": archive,
+                            "checksum": checksum, "pinned": pinned})
         if not sources:
             # Wolfi-internal packages (baselayout, config files) have no
             # upstream: the recipe at its commit is the source.
             sources.append({"url": recipe, "ref": recipe_commit, "archive": "",
-                            "pinned": bool(recipe_commit)})
+                            "checksum": "", "pinned": bool(recipe_commit)})
         out.append({
             "package": apk["name"],
             "version": apk.get("versionInfo", ""),
@@ -140,21 +141,27 @@ def packages(sbom):
     return out
 
 
-def bundled(image_tar):
-    """Entries of every bundled-sources.json in the image's layers."""
-    out = []
-    if image_tar == "-":
-        return out
+def image_files(image_tar, wanted):
+    """Yield (path, bytes) for the regular files in apko's image tarball whose
+    path (relative, e.g. usr/lib/...) satisfies wanted(path)."""
     with tarfile.open(image_tar) as image:
         manifest = json.load(image.extractfile("manifest.json"))
         for layer_name in manifest[0]["Layers"]:
             with tarfile.open(fileobj=image.extractfile(layer_name), mode="r:*") as layer:
                 for member in layer:
-                    path = member.name.lstrip("./")
-                    if member.isfile() and fnmatch.fnmatch(path, BUNDLED_GLOB):
-                        owner = path.split("/")[3]
-                        for entry in json.load(layer.extractfile(member)):
-                            out.append({"bundled_in": owner, **entry})
+                    path = member.name.removeprefix("./").lstrip("/")
+                    if member.isfile() and wanted(path):
+                        yield path, layer.extractfile(member).read()
+
+
+def bundled(image_tar):
+    """Entries of every bundled-sources.json in the image's layers."""
+    out = []
+    if image_tar == "-":
+        return out
+    for path, data in image_files(image_tar, lambda p: fnmatch.fnmatch(p, BUNDLED_GLOB)):
+        owner = path.split("/")[3]
+        out.extend({"bundled_in": owner, **entry} for entry in json.loads(data))
     for entry in out:
         purl, ref = entry.get("purl", ""), entry.get("ref", "")
         # Maven Central releases and Wolfi APK versions are immutable, so a

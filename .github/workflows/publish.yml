@@ -82,6 +82,10 @@ jobs:
           devbox run -- cosign attest --yes \
             --type https://github.com/backend-bunny/container-dropshipping/sources/v1 \
             --predicate "out/$COMPONENT/sources.json" "$IMAGE@$DIGEST"
+          # License texts and upstream notices (hack/notices.py).
+          devbox run -- cosign attest --yes \
+            --type https://github.com/backend-bunny/container-dropshipping/notices/v1 \
+            --predicate "out/$COMPONENT/notices.json" "$IMAGE@$DIGEST"
       - name: Attest build provenance
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
@@ -109,5 +113,10 @@ jobs:
             echo "<details><summary>Sources</summary>"
             echo
             cat "out/$COMPONENT/sources.md"
+            echo "</details>"
+            echo
+            echo "<details><summary>License notices</summary>"
+            echo
+            cat "out/$COMPONENT/notices.md"
             echo "</details>"
           } >> "$GITHUB_STEP_SUMMARY"
