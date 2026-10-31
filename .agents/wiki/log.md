@@ -168,3 +168,17 @@ Append-only, newest last. Format: `## [YYYY-MM-DD] <kind> | <subject>`.
   `unknown/unknown`).
 - Checked: `verify-attestation` output uses `.payload`, so the README SBOM
   query was already right.
+
+## [2026-10-31] add | license notices attestation
+
+- `hack/notices.py` gathers license/notice files from each package's pinned
+  source archive (41 archives, 79 MiB across all images, cached in
+  `.cache/notices`), plus the jars' `META-INF` files, the JDK's `jre/legal`
+  and the canonical SPDX texts. `build.sh` runs it, `publish` attests
+  `…/notices/v1`, and `ci`/`publish` summarize it.
+- Findings: gcc's archive is 404 on `tarballs.cgr.dev`. The name hash isn't
+  the file's SHA256. libsignal isn't on Maven Central (so `license` was added
+  to bundled-sources.json). glibc's licenses are `COPYINGv2`/`v3` + `LICENSES`.
+- The setup-tools cache key now includes `apko.lock.json`.
+- `sources.py` exports `checksum` and shares `image_files()`.
+- Sizes: haproxy 266 KiB, signal-cli 708 KiB, tofu-ci 737 KiB (budget 1 MiB).

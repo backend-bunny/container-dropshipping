@@ -32,7 +32,9 @@ Pod Security. Operational knowledge lives in `.agents/wiki/`: read it first.
 - **Images are signed keylessly.** cosign with GitHub Actions OIDC (Sigstore
   public-good Fulcio/Rekor). No long-lived signing keys anywhere. Sign and
   attest the **image index digest** (what the tags point to), with the SBOM
-  (apko generates SPDX) and build provenance as attestations.
+  (apko generates SPDX), build provenance, the source manifest
+  (`hack/sources.py`) and the license notices (`hack/notices.py`) as
+  attestations.
 - **Declare licenses.** `melange.yaml` sets `copyright:` (one entry per
   bundled copyleft part), `org.opencontainers.image.licenses` lists the main
   software's licenses including bundled copyleft parts, and the component

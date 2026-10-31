@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build one component exactly as CI does:
 #   ephemeral melange key -> melange build + test -> apko build from the lock.
-# Outputs out/<component>/{image.tar,build.lock.json,sbom-*.spdx.json,sources.{json,md},melange.rsa.pub}.
+# Outputs out/<component>/{image.tar,build.lock.json,sbom-*.spdx.json,sources.{json,md},notices.{json,md},melange.rsa.pub}.
 # Usage: hack/build.sh <component>
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -42,6 +42,13 @@ echo "::group::source manifest ($c)"
 # Fails if any package's source isn't pinned (see hack/sources.py).
 python3 hack/sources.py render "$out/sbom-$ARCH.spdx.json" "$out/image.tar" \
   "$out/sources.json" "$out/sources.md"
+echo "::endgroup::"
+
+echo "::group::license notices ($c)"
+# License texts + upstream notices for every package (see hack/notices.py).
+# Source archives are cached in $CACHE_DIR/notices (CI persists .cache).
+python3 hack/notices.py render "$out/sources.json" "$out/image.tar" "$CACHE_DIR/notices" \
+  "$out/notices.json" "$out/notices.md"
 echo "::endgroup::"
 
 echo "built $out/image.tar"
