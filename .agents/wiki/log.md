@@ -182,3 +182,15 @@ Append-only, newest last. Format: `## [YYYY-MM-DD] <kind> | <subject>`.
 - The setup-tools cache key now includes `apko.lock.json`.
 - `sources.py` exports `checksum` and shares `image_files()`.
 - Sizes: haproxy 266 KiB, signal-cli 708 KiB, tofu-ci 737 KiB (budget 1 MiB).
+
+## [2026-10-31] add | python and python-dev images
+
+- New components `python` (distroless) and `python-dev` (toolbox), modelled
+  on Chainguard's `python:latest` / `latest-dev`. CPython 3.15.2 is built
+  from the upstream tag with melange: Wolfi's `python-3.15` builds the 3.15
+  branch and was at 3.15.1_git20261024.
+- python-dev's `melange.yaml` symlinks python's; `hack/discover.sh` now
+  follows symlinks. Renovate tracks `python/cpython` (3.15.x only) and skips
+  the symlink.
+- OpenSSL 4.0 without Wolfi's patches (v3.15.2 already supports it).
+- See [[components/python]].

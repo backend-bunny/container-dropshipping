@@ -1,0 +1,176 @@
+package:
+  # Wolfi's python-3.15 builds from the maintenance branch and lags the
+  # release tags, so the release is built here. Same package names as Wolfi
+  # (python-3.15, -base, -dev), so Wolfi's py3.15-* packages install on top.
+  # Shared with python-dev (its melange.yaml is a symlink to this file).
+  # Minor bumps (3.16) rename every package: Renovate only offers 3.15.x.
+  name: python-3.15
+  epoch: 0
+  description: "The Python programming language, built from the upstream release tag"
+  # CPython bundles only permissive code (HACL*, mimalloc, ...); expat,
+  # libffi and mpdecimal come from Wolfi.
+  copyright:
+    - license: PSF-2.0
+  dependencies:
+    provides:
+      - python3=${{package.full-version}}
+    runtime:
+      - python-3.15-base=${{package.full-version}}
+  # Keep version last and vars.expected-commit right below it: Renovate's
+  # regex must match both in one span to bump them together.
+  # renovate: datasource=github-tags depName=python/cpython
+  version: "3.15.2"
+vars:
+  expected-commit: 5e58eaad7c58df58dfa8ea549c87996e01dd1077
+
+environment:
+  contents:
+    repositories:
+      - https://packages.wolfi.dev/os
+    keyring:
+      - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+    packages:
+      - build-base
+      - busybox
+      - bzip2-dev
+      - ca-certificates-bundle
+      - expat-dev
+      - gdbm-dev
+      - libffi-dev
+      - linux-headers
+      - mpdecimal-dev
+      - ncurses-dev
+      # Same OpenSSL as Wolfi's python-3.15. CPython 3.15 builds against
+      # OpenSSL 4 as is; Wolfi's extra patches only restore the deprecated
+      # PROTOCOL_TLSv1* constants and adjust tests.
+      - openssl-4.0-dev
+      - readline-dev
+      - sqlite-dev
+      - util-linux-dev
+      - xz-dev
+      - zlib-dev
+      - zstd-dev
+
+pipeline:
+  - uses: git-checkout
+    with:
+      repository: https://github.com/python/cpython
+      tag: v${{package.version}}
+      expected-commit: ${{vars.expected-commit}}
+
+  - name: Use the system libraries
+    runs: |
+      rm -rf Modules/expat Modules/_ctypes/darwin* Modules/_ctypes/libffi*
+
+  # Wolfi's configure flags for the default (GIL) build. No free-threading,
+  # JIT or tkinter variants.
+  - uses: autoconf/configure
+    with:
+      opts: |
+        --enable-ipv6 \
+        --enable-loadable-sqlite-extensions \
+        --enable-shared \
+        --enable-optimizations \
+        --with-lto \
+        --with-computed-gotos \
+        --with-dbmliborder=gdbm:ndbm \
+        --with-system-expat \
+        --with-system-libmpdec \
+        --without-ensurepip \
+        --with-builtin-hashlib-hashes=blake2 \
+        --with-wheel-pkg-dir=/usr/share/python-wheels
+
+  - uses: autoconf/make
+
+  - uses: autoconf/make-install
+
+  - name: Trim and precompile
+    runs: |
+      set -e
+      d=${{targets.destdir}}
+      lib=$d/usr/lib/python3.15
+      rm -f $d/usr/lib/libpython3.15.a $d/usr/lib/python3.15/config-3.15-*/libpython3.15.a
+      rm -f $d/usr/lib/libpython3.so $d/usr/bin/idle3* $d/usr/bin/2to3*
+      rm -rf $d/usr/share/man
+      find $lib -type d \( -name test -o -name tests -o -name idle_test \) -prune -exec rm -rf '{}' +
+      # No Tk: _tkinter isn't built, so its Python half can't import either.
+      rm -rf $lib/idlelib $lib/tkinter $lib/turtledemo $lib/ensurepip/_bundled
+      rm -f $lib/site-packages/README.txt
+      ln -s python3 $d/usr/bin/python
+
+      # Like Wolfi: unchecked-hash pycs (reproducible, no mtime checks).
+      find $lib -name '*.pyc' -delete
+      LD_LIBRARY_PATH=$d/usr/lib $d/usr/bin/python3.15 -B -m compileall -q -f \
+        --invalidation-mode=unchecked-hash -r100 $lib
+
+  - uses: strip
+
+subpackages:
+  # Split the same way as Wolfi: -dev first, then -base takes the interpreter
+  # and stdlib, leaving the python/python3/pydoc3 links in python-3.15.
+  - name: python-3.15-dev
+    description: "python-3.15 headers, python3-config and pkg-config files"
+    dependencies:
+      provides:
+        - python3-dev=${{package.full-version}}
+      runtime:
+        - python-3.15=${{package.full-version}}
+    pipeline:
+      - runs: |
+          set -e
+          from=${{targets.destdir}}
+          to=${{targets.subpkgdir}}
+          mkdir -p $to/usr/bin $to/usr/lib/python3.15 $to/usr/include/python3.15
+          mv $from/usr/bin/python3-config $from/usr/bin/python3.15-config $to/usr/bin/
+          mv $from/usr/lib/pkgconfig $to/usr/lib/
+          mv $from/usr/lib/libpython3.15.so $to/usr/lib/
+          mv $from/usr/lib/python3.15/config-3.15-* $to/usr/lib/python3.15/
+          # pyconfig.h stays: sysconfig reads it at runtime.
+          for f in $from/usr/include/python3.15/*; do
+            [ "${f##*/}" = pyconfig.h ] || mv "$f" $to/usr/include/python3.15/
+          done
+
+  - name: python-3.15-base
+    description: "python-3.15 interpreter and standard library, without the python/python3 links"
+    dependencies:
+      runtime:
+        # venv/ensurepip install pip from /usr/share/python-wheels.
+        - py3-pip-wheel
+    pipeline:
+      - runs: |
+          set -e
+          from=${{targets.destdir}}
+          to=${{targets.subpkgdir}}
+          mkdir -p $to/usr/bin $to/usr/lib $to/usr/include
+          mv $from/usr/bin/python3.15 $from/usr/bin/pydoc3.15 $to/usr/bin/
+          mv $from/usr/lib/python3.15 $from/usr/lib/libpython3.15.so.* $to/usr/lib/
+          mv $from/usr/include/python3.15 $to/usr/include/
+
+test:
+  environment:
+    contents:
+      packages:
+        - busybox
+  pipeline:
+    - name: Version
+      runs: |
+        set -e
+        python --version
+        python --version | grep -qx "Python ${{package.version}}"
+        python3 -c 'import sys; assert sys.version_info[:2] == (3, 15)'
+    - name: Extension modules built against the system libraries
+      runs: |
+        python3 - <<'PY'
+        import bz2, compression.zstd, ctypes, curses, dbm.gnu, decimal, lzma
+        import pyexpat, readline, sqlite3, ssl, uuid, zlib, hashlib
+        print(ssl.OPENSSL_VERSION, sqlite3.sqlite_version, pyexpat.EXPAT_VERSION)
+        assert ssl.OPENSSL_VERSION.startswith("OpenSSL 4."), ssl.OPENSSL_VERSION
+        assert decimal.__libmpdec_version__
+        hashlib.sha3_256(b"x"); hashlib.blake2b(b"x")
+        PY
+    - name: venv with pip from the wheel dir
+      runs: |
+        set -e
+        python3 -m venv /tmp/venv
+        /tmp/venv/bin/pip --version
+        /tmp/venv/bin/pip check

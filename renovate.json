@@ -25,6 +25,16 @@
       "dependencyDashboardApproval": true
     },
     {
+      "description": "CPython: 3.15.x only. A minor bump renames every package (python-3.15, py3.15-pip, ...), so 3.16 is a manual change",
+      "matchDepNames": ["python/cpython"],
+      "allowedVersions": "<3.16.0"
+    },
+    {
+      "description": "python-dev's melange.yaml is a symlink to python's: update only the real file",
+      "matchFileNames": ["components/python-dev/melange.yaml"],
+      "enabled": false
+    },
+    {
       "description": "Build toolchain (devbox: melange, apko, cosign, ...) in one PR",
       "matchManagers": ["devbox"],
       "groupName": "build toolchain"

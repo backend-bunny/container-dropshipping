@@ -143,7 +143,8 @@ version, when there is one) are missing, so new components must set them.
 | `lock-refresh` | Mon 05:17 UTC, dispatch | `contents: read`; `pr` job: `contents`, `pull-requests`, `actions: write` | `hack/lock.sh` per component → one PR on `chore/lock-refresh` → dispatches `ci` on it |
 
 Change discovery (`hack/discover.sh BASE`): `components/<name>/**` selects
-that component. `hack/`, `.github/` or `devbox.*` select all of them, as does
+that component. A file symlinked from another component (python-dev's
+`melange.yaml`) also selects the component holding the link. `hack/`, `.github/` or `devbox.*` select all of them, as does
 a missing BASE (new branch, dispatch).
 
 Publish concurrency group: `publish-<component>-<ref>`, queued (not
