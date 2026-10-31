@@ -20,6 +20,15 @@ else
     # Only components that still exist (a deleted one has nothing to build).
     selected=$(grep -oE '^components/[^/]+/' <<<"$changed" | cut -d/ -f2 \
       | sort -u | grep -Fx -f <(echo "$all") || true)
+    # A component sharing another's file through a symlink (python-dev's
+    # melange.yaml -> ../python/melange.yaml) is selected when the target changes.
+    while read -r link; do
+      [[ -n $link ]] || continue
+      if grep -qFx "$(realpath --relative-to=. "$link")" <<<"$changed"; then
+        selected=$(printf '%s\n%s\n' "$selected" "$(cut -d/ -f2 <<<"$link")")
+      fi
+    done < <(find components -mindepth 2 -maxdepth 2 -type l)
+    selected=$(sort -u <<<"$selected")
   fi
 fi
 

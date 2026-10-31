@@ -16,6 +16,8 @@ keyless cosign, published to GHCR.
 | [`tofu-ci`](components/tofu-ci/README.md) | `ghcr.io/backend-bunny/tofu-ci` | OpenTofu 1.13.1 + age/curl/jq/git/ssh for GitLab CI jobs | yes (toolbox exception) |
 | [`signal-cli`](components/signal-cli/README.md) | `ghcr.io/backend-bunny/signal-cli` | Signal messenger CLI / JSON-RPC daemon | no (distroless) |
 | [`haproxy`](components/haproxy/README.md) | `ghcr.io/backend-bunny/haproxy` | HAProxy 3.4 LTS load balancer (Wolfi package, no melange) | no (distroless) |
+| [`python`](components/python/README.md) | `ghcr.io/backend-bunny/python` | Python 3.15 runtime, CPython built from the release tag | no (distroless) |
+| [`python-dev`](components/python-dev/README.md) | `ghcr.io/backend-bunny/python-dev` | Same Python + pip, uv, setuptools, git and a C toolchain, for building venvs | yes (toolbox exception) |
 
 Every image runs as uid/gid **65532** and is built for `x86_64` only.
 
@@ -179,7 +181,7 @@ software under that software's own license, unchanged in function.
   The CI job summary lists those cases.
 
 These are **unofficial builds**, not affiliated with or endorsed by the
-upstream projects. HAProxy, OpenTofu, Signal and other names are trademarks
+upstream projects. HAProxy, OpenTofu, Python, Signal and other names are trademarks
 of their respective owners and are used here only to say what an image
 contains.
 

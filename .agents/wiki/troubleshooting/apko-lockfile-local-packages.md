@@ -61,3 +61,12 @@ be stale on every PR.
 2. Probe apko behaviour with a cold `--cache-dir`.
 3. Re-check with each apko bump: the toolchain (devbox) currently ships an
    older apko (1.2.37) than the one probed. CI exercises the same path.
+
+## Wolfi packages depending on an @local package
+
+A package from a tagged repo (`@local ./packages`) is only eligible for a
+constraint that carries the tag. A Wolfi package depending on it by plain
+name or `cmd:` (py3.15-pip → `cmd:python3.15`) fails to resolve, or picks
+Wolfi's copy and conflicts. List the local repo both tagged and untagged,
+and pin every local package the Wolfi ones need with `@local`
+(see [[components/python]]). Seen 2026-10-31 on python-dev.
