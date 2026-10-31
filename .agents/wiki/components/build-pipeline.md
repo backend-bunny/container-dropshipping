@@ -26,6 +26,34 @@ How `components/<name>/` becomes a signed image at `ghcr.io/backend-bunny/<name>
 | melange test | the config's `test:` pipeline, against `./packages` + Wolfi |
 | lock check | `apko lock` fresh → `lockfile.py merge` with the committed lock (fails on drift) |
 | apko build | `--lockfile out/<name>/build.lock.json --keyring-append <pub>`; SBOMs to `out/<name>/` |
+| source manifest | `hack/sources.py render` → `out/<name>/sources.{json,md}`; fails on an unpinned source |
+
+## Source manifest (hack/sources.py)
+
+apko's SPDX SBOM already links every APK to its upstream source
+(`GENERATED_FROM`: purl with `vcs_url …@<commit>`, or `checksum=`, plus a
+`downloadLocation`) and its recipe (`DESCRIBED_BY`:
+`pkg:github/<repo>@<commit>#<file>`). `sources.py` flattens that per APK.
+Wolfi-internal packages (`wolfi-baselayout`, `krb5-conf`) have no source
+link, so their recipe commit stands in. It adds every
+`usr/share/doc/*/bundled-sources.json` found in the image layers (signal-cli's
+Maven jars + JDK).
+
+- **Pinned** means a 40-hex commit, a checksum, a `tarballs.cgr.dev` archive,
+  or (bundled) a versioned `pkg:maven`/`pkg:apk` purl. A tag alone is not
+  pinned: that's how signal-cli's `expected-commit: ""` was caught.
+- **`tarballs.cgr.dev`** is Chainguard's public, content-addressed source
+  archive (`<sha256>-<commit>.tar.gz`). Most Wolfi sources have a copy there.
+  Its retention policy is unknown.
+- `publish` attests `sources.json` on the index digest
+  (`--type https://github.com/backend-bunny/container-dropshipping/sources/v1`).
+  `ci` and `publish` put `sources.md` in the job summary.
+- melange gets `--git-repo-url`/`--namespace backend-bunny` (`hack/lib.sh`).
+  Without them, our recipe refs in the SBOM read
+  `pkg:github/https:/%2Funknown%2Funknown%2Funknown@…`.
+- `cosign verify-attestation` prints DSSE envelopes (`.payload`), while
+  `cosign download attestation` (cosign 3) prints Sigstore bundles
+  (`.dsseEnvelope.payload`). The README queries use the former.
 
 `hack/test.sh` then loads the tarball into Docker, checks `User` is 65532
 and runs `components/<name>/test.sh`.
@@ -77,7 +105,7 @@ version, when there is one) are missing, so new components must set them.
 | Workflow | Trigger | Permissions | Does |
 |----------|---------|-------------|------|
 | `ci` | pull_request, workflow_dispatch (from lock-refresh) | `contents: read` | discover changed components → build, test, publish dry run; `ci-ok` is the single required check |
-| `publish` | push to main, dispatch | job: `packages`, `id-token`, `attestations: write` | build, test, `apko publish` (3 tags), `cosign sign`, `cosign attest --type spdxjson`, `attest-build-provenance` |
+| `publish` | push to main, dispatch | job: `packages`, `id-token`, `attestations: write` | build, test, `apko publish` (3 tags), `cosign sign`, `cosign attest --type spdxjson` + `…/sources/v1`, `attest-build-provenance` |
 | `lock-refresh` | Mon 05:17 UTC, dispatch | `contents: read`; `pr` job: `contents`, `pull-requests`, `actions: write` | `hack/lock.sh` per component → one PR on `chore/lock-refresh` → dispatches `ci` on it |
 
 Change discovery (`hack/discover.sh BASE`): `components/<name>/**` selects

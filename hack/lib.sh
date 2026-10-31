@@ -7,6 +7,9 @@ MELANGE_RUNNER=${MELANGE_RUNNER:-bubblewrap}
 # component): language deps at /var/cache/melange inside the build, and the
 # Wolfi APKs for melange's build environment.
 CACHE_DIR=${CACHE_DIR:-.cache}
+# Recorded as the recipe source in melange's SBOMs (auto-detection yields
+# "unknown/unknown").
+REPO_URL=https://github.com/backend-bunny/container-dropshipping
 
 # Reproducible timestamps for melange and apko: the commit being built.
 SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-$(git log -1 --format=%ct)}
@@ -60,6 +63,7 @@ build_packages() {
   melange build "$dir/melange.yaml" \
     --arch "$ARCH" --runner "$MELANGE_RUNNER" --empty-workspace \
     --cache-dir "$CACHE_DIR/melange/$c" --apk-cache-dir "$CACHE_DIR/apk" \
+    --git-repo-url "$REPO_URL" --namespace backend-bunny \
     --signing-key "$key/melange.rsa" --out-dir packages
   cp "$key/melange.rsa.pub" "$pub"
   rm -rf "$key"

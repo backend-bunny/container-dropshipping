@@ -18,7 +18,11 @@ image built from source. Upstream ships no official container image.
 - Default command: `daemon --http 0.0.0.0:8080` (multi-account mode)
 - Health: `GET /api/v1/check` on the HTTP port (use `httpGet` probe)
 - State: `/var/lib/signal-cli` (passed as `--config`; mount a PVC)
-- Version tracking: Renovate via `datasource=github-releases depName=AsamK/signal-cli`
+- Version tracking: Renovate via `datasource=github-tags depName=AsamK/signal-cli`,
+  bumping `vars.expected-commit` with it (same layout as tofu-ci)
+- Bundled sources: `/usr/share/doc/signal-cli/bundled-sources.json` (every
+  runtimeClasspath Maven jar + the Wolfi `openjdk-25` that jlink trimmed), for
+  [[components/build-pipeline]]'s source manifest
 
 ## Build
 
@@ -51,6 +55,14 @@ args: ["-a", "+46...", "link", "-n", "<device-name>"]
 ```
 
 ## Gotchas
+
+- **bundled-sources.json comes from a Gradle init script** (`bundledSources`
+  task, run `--offline --no-configuration-cache` after `installDist`): resolved
+  `runtimeClasspath` module artifacts → Maven purl + Maven Central dir.
+  libsignal-client points at `github.com/signalapp/libsignal` tag
+  `v<version>` (AGPL). The JDK version comes from the build env's apk DB. If
+  the task fails, check whether upstream renamed `runtimeClasspath` or
+  enabled something that breaks `--offline`.
 
 - **No shell**: upstream's `bin/signal-cli` is a shell script and is not
   shipped; the entrypoint runs `java -cp /usr/lib/signal-cli/lib/*` directly

@@ -51,6 +51,13 @@ jobs:
           component: ${{ matrix.component }}
       - name: Build (melange + apko from lockfile)
         run: devbox run -- hack/build.sh "$COMPONENT"
+      - name: Source manifest summary
+        run: |
+          {
+            echo "### $COMPONENT sources"
+            echo
+            cat "out/$COMPONENT/sources.md"
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Test image
         run: devbox run -- hack/test.sh "$COMPONENT"
       - name: Publish dry run

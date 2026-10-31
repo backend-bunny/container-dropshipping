@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build one component exactly as CI does:
 #   ephemeral melange key -> melange build + test -> apko build from the lock.
-# Outputs out/<component>/{image.tar,build.lock.json,sbom-*.spdx.json,melange.rsa.pub}.
+# Outputs out/<component>/{image.tar,build.lock.json,sbom-*.spdx.json,sources.{json,md},melange.rsa.pub}.
 # Usage: hack/build.sh <component>
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -36,6 +36,12 @@ mapfile -t annotations < <(version_annotation "$c")
 apko build "$dir/apko.yaml" "$REGISTRY/$c:build" "$out/image.tar" \
   --arch "$ARCH" --lockfile "$out/build.lock.json" "${keys[@]}" "${annotations[@]}" \
   --sbom-path "$out"
+echo "::endgroup::"
+
+echo "::group::source manifest ($c)"
+# Fails if any package's source isn't pinned (see hack/sources.py).
+python3 hack/sources.py render "$out/sbom-$ARCH.spdx.json" "$out/image.tar" \
+  "$out/sources.json" "$out/sources.md"
 echo "::endgroup::"
 
 echo "built $out/image.tar"

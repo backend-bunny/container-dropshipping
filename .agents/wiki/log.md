@@ -154,3 +154,17 @@ Append-only, newest last. Format: `## [YYYY-MM-DD] <kind> | <subject>`.
   modelled on Docker official images' common license text.
 - [[decisions/licensing]]: comparison with Docker official images and
   linuxcontainers. Next step is a per-image source manifest.
+
+## [2026-10-30] add | per-image source manifest
+
+- `hack/sources.py` renders `out/<c>/sources.{json,md}` from the apko SBOM
+  (+ `bundled-sources.json` files in the image). `build.sh` runs it and fails
+  on unpinned sources. `publish` attests it as `…/sources/v1`, and `ci` and
+  `publish` show it in the job summary.
+- signal-cli: pinned `expected-commit` (v0.14.9 = `3997429…`), Renovate
+  datasource moved to `github-tags`, and the bundled jars + JDK are declared
+  via a Gradle init script.
+- melange now gets `--git-repo-url`/`--namespace` (the recipe refs were
+  `unknown/unknown`).
+- Checked: `verify-attestation` output uses `.payload`, so the README SBOM
+  query was already right.

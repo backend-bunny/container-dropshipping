@@ -47,8 +47,11 @@ an engineering reading, not legal advice.
   upstream tags and the wolfi-dev/os recipes. That is a third-party source
   pointer: acceptable under GPLv3 §6(d) with clear directions, weak under
   GPLv2 §3 (busybox, git) and dependent on others keeping old versions up.
-- **Next:** a per-image source manifest (repo-info style: per-package
-  upstream URL + commit/SHA from each APK's embedded `.melange.yaml`).
+- **Done (2026-10-30):** a per-image source manifest attestation
+  (`hack/sources.py`, see [[components/build-pipeline]]). It gives exact
+  source pins per package plus bundled jars and JDK, with archived copies on
+  `tarballs.cgr.dev` for most Wolfi sources. Still a pointer, but exact and
+  mostly archived. The archive is Chainguard's, not ours.
 - **Stronger fix:** a publish step that collects each image's sources (every
   Wolfi APK embeds its `.melange.yaml` with source URL + commit) and pushes
   them as an OCI artifact attached to the image digest.

@@ -78,6 +78,10 @@ jobs:
           devbox run -- cosign sign --yes "$IMAGE@$DIGEST"
           devbox run -- cosign attest --yes --type spdxjson \
             --predicate "out/$COMPONENT/sbom-x86_64.spdx.json" "$IMAGE@$DIGEST"
+          # Per-package upstream source (hack/sources.py), for license compliance.
+          devbox run -- cosign attest --yes \
+            --type https://github.com/backend-bunny/container-dropshipping/sources/v1 \
+            --predicate "out/$COMPONENT/sources.json" "$IMAGE@$DIGEST"
       - name: Attest build provenance
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
@@ -100,3 +104,10 @@ jobs:
             --certificate-oidc-issuer https://token.actions.githubusercontent.com
           \`\`\`
           EOF
+          {
+            echo
+            echo "<details><summary>Sources</summary>"
+            echo
+            cat "out/$COMPONENT/sources.md"
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
