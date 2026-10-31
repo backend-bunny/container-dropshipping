@@ -193,6 +193,7 @@ Append-only, newest last. Format: `## [YYYY-MM-DD] <kind> | <subject>`.
   follows symlinks. Renovate tracks `python/cpython` (3.15.x only) and skips
   the symlink.
 - OpenSSL 4.0 without Wolfi's patches (v3.15.2 already supports it).
+- Root README: component table rows + "Python" in the trademark note.
 - See [[components/python]].
 - Fix: python-dev lock failed (py3.15-pip's dep went to Wolfi's
   python-3.15-base). Pinned `python-3.15-base@local` and listed `./packages`
