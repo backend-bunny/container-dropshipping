@@ -8,7 +8,7 @@ with an archived copy on tarballs.cgr.dev) and to its build recipe
 image. publish.sh attests it on the index digest next to the SBOM.
 
 Third-party code that a package bundles without its own APK (e.g. signal-cli's
-Maven jars) is declared by the package in
+Maven jars, crowdsec-web-ui's npm packages) is declared by the package in
 /usr/share/doc/<pkg>/bundled-sources.json and listed separately.
 
 Every source must be pinned (a commit, a checksum, a content-addressed
@@ -164,12 +164,12 @@ def bundled(image_tar):
         out.extend({"bundled_in": owner, **entry} for entry in json.loads(data))
     for entry in out:
         purl, ref = entry.get("purl", ""), entry.get("ref", "")
-        # Maven Central releases and Wolfi APK versions are immutable, so a
-        # versioned purl pins them.
+        # Maven Central releases, npm registry versions and Wolfi APK
+        # versions are immutable, so a versioned purl pins them.
         entry["pinned"] = bool(
             SHA1.fullmatch(ref)
             or entry.get("checksum")
-            or re.match(r"pkg:(maven|apk)/[^@]+@.+", purl)
+            or re.match(r"pkg:(maven|npm|apk)/[^@]+@.+", purl)
         )
     return out
 
@@ -229,7 +229,7 @@ def render(sbom_path, image_tar, out_json, out_md):
             print(f"  unpinned: {line}", file=sys.stderr)
         sys.exit("error: sources must be pinned to a commit, checksum or archive "
                  "(melange git-checkout: set expected-commit; bundled-sources.json: "
-                 "a versioned maven/apk purl, a commit ref or a checksum)")
+                 "a versioned maven/npm/apk purl, a commit ref or a checksum)")
 
 
 if __name__ == "__main__":

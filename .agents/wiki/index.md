@@ -12,6 +12,7 @@ before troubleshooting; update it after every change (and append to
 | [components/tofu-ci.md](components/tofu-ci.md) | OpenTofu 1.13.1 CI toolbox for GitLab Kubernetes-executor jobs; tofu built with melange (not in Wolfi) |
 | [components/signal-cli.md](components/signal-cli.md) | signal-cli, Gradle/JDK 25 from source, jlink-trimmed runtime, distroless |
 | [components/haproxy.md](components/haproxy.md) | HAProxy 3.4 LTS straight from Wolfi (`-nocaps`, no melange), distroless; version from the lock |
+| [components/crowdsec-web-ui.md](components/crowdsec-web-ui.md) | CrowdSec Web UI 2026.11.3 (Node 24, pnpm via corepack), better-sqlite3 built from source, GeoNames baked in, npm packages in bundled-sources.json, distroless; upstream grype baseline |
 | [components/python.md](components/python.md) | python (distroless) + python-dev (toolbox), CPython 3.15.2 from the tag with melange (Wolfi builds the branch), shared recipe via symlink, Renovate 3.15.x |
 
 ## Decisions
@@ -21,7 +22,7 @@ before troubleshooting; update it after every change (and append to
 | [decisions/ephemeral-melange-keys-keyless-cosign.md](decisions/ephemeral-melange-keys-keyless-cosign.md) | Throwaway melange key per build; image trust from keyless cosign + attestations |
 | [decisions/lockfiles-refresh-prs.md](decisions/lockfiles-refresh-prs.md) | Committed apko lockfiles (Wolfi-only), weekly refresh PR via GITHUB_TOKEN + dispatched ci; waiting on Renovate's apko manager (renovatebot/renovate#38142) |
 | [decisions/devbox-toolchain.md](decisions/devbox-toolchain.md) | melange/apko/cosign pinned with devbox (nixpkgs), shared by CI and local |
-| [decisions/licensing.md](decisions/licensing.md) | Repo Apache-2.0; image licenses via annotation + SBOM; README notices; source manifest + license notices attestations per image; open: own source archive |
+| [decisions/licensing.md](decisions/licensing.md) | Repo Apache-2.0; image licenses via annotation + SBOM; README notices; source manifest + license notices attestations per image; AGPL apps, CC-BY data, NOASSERTION; open: own source archive |
 
 ## Troubleshooting
 

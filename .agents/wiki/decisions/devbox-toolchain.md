@@ -15,8 +15,10 @@ signature behaviour), so CI and local builds must use the same versions.
 ## Decision
 
 `devbox.json` + `devbox.lock` (nixpkgs) pin melange, apko, cosign, go-task,
-bubblewrap, python3 and jq. CI installs them with
-`jetify-com/devbox-install-action` (`.github/actions/setup-tools`) and runs
+bubblewrap, python3, jq and grype. grype (added 2026-11-04) is for local
+CVE comparisons against upstream images. No workflow runs it yet. CI
+installs them with `jetify-com/devbox-install-action`
+(`.github/actions/setup-tools`) and runs
 everything as `devbox run -- hack/...`. Developers use `devbox shell`, or
 direnv with the committed `.envrc` (`devbox generate direnv --print-envrc`).
 Renovate's `devbox` manager proposes bumps.

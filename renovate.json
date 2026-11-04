@@ -30,6 +30,12 @@
       "allowedVersions": "<3.16.0"
     },
     {
+      "description": "crowdsec-web-ui releases almost daily: at most one PR a week, landing with the Monday lock-refresh PR, and only releases upstream hasn't superseded within 3 days",
+      "matchDepNames": ["TheDuffman85/crowdsec-web-ui"],
+      "schedule": ["* 0-5 * * 1"],
+      "minimumReleaseAge": "3 days"
+    },
+    {
       "description": "python-dev's melange.yaml is a symlink to python's: update only the real file",
       "matchFileNames": ["components/python-dev/melange.yaml"],
       "enabled": false

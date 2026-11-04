@@ -13,7 +13,8 @@ Publishing public images distributes binaries. That brings obligations for
 the copyleft software in them: glibc (LGPL) in every image, busybox/git
 (GPL-2.0-only) in tofu-ci, HAProxy (GPL-2.0-or-later), signal-cli
 (GPL-3.0-only) with libsignal-client (AGPL-3.0-only) and an OpenJDK runtime
-(GPL-2.0 WITH Classpath exception), and OpenTofu (MPL-2.0). This page records
+(GPL-2.0 WITH Classpath exception), OpenTofu (MPL-2.0), and crowdsec-web-ui
+(AGPL-3.0-only) with GeoNames data (CC-BY-4.0). This page records
 an engineering reading, not legal advice.
 
 ## Decision
@@ -40,6 +41,20 @@ an engineering reading, not legal advice.
   packages ship license texts (`/usr/share/doc/*/copyright`) and whose
   archives keep source. Our gaps relative to them: no license texts in the
   images, coarse source pointers, no source archive.
+- **AGPL apps (2026-11-04, crowdsec-web-ui):** fine to redistribute. We ship
+  them unmodified, so §13 (offer source to network users) is about the
+  operator's changes, not ours. The source is the pinned upstream tag. A
+  LICENSE file with no "or later" notice is recorded as `-only`.
+- **Data under CC-BY-4.0** (GeoNames) counts like a bundled part: listed in
+  the annotation, `copyright:` (with `paths:`) and the README, with
+  attribution.
+- **Undeclared licenses are recorded as `NOASSERTION`, not guessed, and
+  accepted per name@version only.** npm `buffers@0.1.1` (via
+  local-reverse-geocoder; its repo is gone) declares none. Upstream's own
+  image ships it too. The component lists it with a review note, and
+  notices.py accepts a no-text item only with that note (see
+  [[components/build-pipeline]]). A general warn-on-NOASSERTION was
+  rejected: a new unlicensed dependency must be a decision.
 
 ## Open gap
 

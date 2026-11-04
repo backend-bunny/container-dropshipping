@@ -1,0 +1,67 @@
+# crowdsec-web-ui built with melange (melange.yaml) on Wolfi's nodejs-24;
+# see README.md.
+contents:
+  repositories:
+    - https://packages.wolfi.dev/os
+    # melange output; its per-build key is passed with --keyring-append.
+    - "@local ./packages"
+  keyring:
+    - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+  packages:
+    - crowdsec-web-ui@local
+    # TLS to LAPI, OIDC providers and notification targets.
+    - ca-certificates-bundle
+
+# OCI annotations (also written as config labels). apko adds
+# image.source/revision/created; build.sh/publish.sh add image.version.
+annotations:
+  org.opencontainers.image.title: crowdsec-web-ui
+  org.opencontainers.image.description: "CrowdSec Web UI (alerts, decisions, allowlists for a CrowdSec LAPI), distroless and non-root"
+  # The app and the bundled GeoNames data; npm packages are permissive and
+  # listed in the SBOM's source manifest.
+  org.opencontainers.image.licenses: AGPL-3.0-only AND CC-BY-4.0
+  org.opencontainers.image.vendor: backend-bunny
+  org.opencontainers.image.url: https://github.com/backend-bunny/container-dropshipping/tree/main/components/crowdsec-web-ui
+  org.opencontainers.image.documentation: https://github.com/backend-bunny/container-dropshipping/blob/main/components/crowdsec-web-ui/README.md
+
+accounts:
+  groups:
+    - groupname: nonroot
+      gid: 65532
+  users:
+    - username: nonroot
+      uid: 65532
+      gid: 65532
+      homedir: /home/nonroot
+  run-as: 65532
+
+environment:
+  HOME: /home/nonroot
+  NODE_ENV: production
+  SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+
+paths:
+  - path: /home/nonroot
+    type: directory
+    uid: 65532
+    gid: 65532
+    permissions: 0o755
+  # config.yaml, state.db (users, settings: back it up) and cache.db.
+  # Mount a PVC here.
+  - path: /app/data
+    type: directory
+    uid: 65532
+    gid: 65532
+    permissions: 0o750
+
+# The server resolves geonames/ against the working directory.
+work-dir: /app
+
+# No shell: run node directly instead of upstream's docker-entrypoint.sh
+# (which only chowns /app/data and drops root). build.env carries the
+# VITE_* build metadata upstream sets as image env; real env vars win.
+entrypoint:
+  command: /usr/bin/node --env-file=/app/build.env /app/dist/server/index.js
+
+archs:
+  - x86_64

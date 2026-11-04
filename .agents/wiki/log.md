@@ -199,3 +199,31 @@ Append-only, newest last. Format: `## [YYYY-MM-DD] <kind> | <subject>`.
   python-3.15-base). Pinned `python-3.15-base@local` and listed `./packages`
   also untagged. Lock generated from the user's built APKs, re-signed with a
   throwaway key in `$TMPDIR`; `apko build` + `sources.py` passed there.
+
+## [2026-11-04] add | crowdsec-web-ui image
+
+- New component `crowdsec-web-ui` (AGPL-3.0-only, so redistribution is
+  fine). Built from tag 2026.11.3 with melange on Wolfi `nodejs-24`
+  (24.22.2, same as upstream's pin). pnpm 12.16.1 via corepack (Wolfi has
+  10.33). better-sqlite3 compiled from source (its prebuilt addons are
+  deleted). GeoNames snapshot baked in, as upstream does. Distroless,
+  `/app` layout and `/app/data` kept from upstream.
+- `bundled-sources.json` lists 281 npm packages + GeoNames files.
+  `sources.py` accepts versioned `pkg:npm` purls. `notices.py` harvests npm
+  registry tarballs (sha512-verified). It accepts a no-license item only
+  with a review `note`, which the component sets per name@version
+  (`buffers@0.1.1`, the one npm package declaring no license).
+- devbox: grype 0.120.0 added (local scans; CI installs it but doesn't run
+  it). Scan with `GRYPE_DB_CACHE_DIR` in `$TMPDIR` from the agent sandbox.
+- Decisions with the user: keep the unpinned GeoNames snapshot; per-package
+  review for unlicensed deps (not a general warning); Renovate for this dep
+  weekly on Monday with `minimumReleaseAge: 3 days`.
+- Licensing decision: AGPL apps, CC-BY data and NOASSERTION recorded.
+- Rehearsed in an apko minirootfs + bwrap (melange git-checkout can't reach
+  GitHub from the agent sandbox). The user ran `task lock` + `task test`.
+- grype 0.120.0: upstream's image has 200 matches / 103 ids (178 Debian, 18
+  in npm's global install, 2 gosu, 1 app: csv-parse). Ours: 1 (the same
+  csv-parse Medium).
+- notices.json is 942 KiB, close to the 1 MiB budget (see the component
+  page).
+- Root README component row. See [[components/crowdsec-web-ui]].
