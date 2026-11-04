@@ -1,0 +1,282 @@
+package:
+  name: crowdsec-web-ui
+  epoch: 0
+  description: "Web UI for CrowdSec alerts, decisions and allowlists (Node.js server + React client)"
+  # The app, plus the GeoNames snapshot baked in for offline reverse
+  # geocoding. The npm packages in node_modules/ and in the client and server
+  # bundles keep their own (permissive) licenses, listed in
+  # bundled-sources.json.
+  copyright:
+    - license: AGPL-3.0-only
+    - license: CC-BY-4.0
+      paths:
+        - app/geonames/*
+  dependencies:
+    runtime:
+      # Same major as upstream's node:24 base. better-sqlite3's addon is
+      # built against its ABI (stable within a major).
+      - nodejs-24
+  # Keep version last and vars.expected-commit right below it: Renovate's
+  # regex must match both in one span to bump them together.
+  # renovate: datasource=github-tags depName=TheDuffman85/crowdsec-web-ui
+  version: "2026.11.3"
+vars:
+  expected-commit: b04d7a187d50f7595834045d5245ef21c35030fd
+
+environment:
+  contents:
+    repositories:
+      - https://packages.wolfi.dev/os
+    keyring:
+      - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+    packages:
+      - build-base
+      - busybox
+      - ca-certificates-bundle
+      - corepack
+      - git
+      - node-gyp
+      - nodejs-24
+      - python3
+  environment:
+    # melange mounts --cache-dir here; CI persists it between runs, so pnpm
+    # and the npm packages aren't re-downloaded.
+    COREPACK_HOME: /var/cache/melange/corepack
+    COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+    npm_config_store_dir: /var/cache/melange/pnpm-store
+    # node-gyp: Wolfi's node headers, not a download from nodejs.org.
+    npm_config_nodedir: /usr
+
+pipeline:
+  - uses: git-checkout
+    with:
+      repository: https://github.com/TheDuffman85/crowdsec-web-ui
+      tag: ${{package.version}}
+      expected-commit: ${{vars.expected-commit}}
+
+  - name: Install dependencies
+    runs: |
+      set -e
+      # corepack fetches the pnpm version named in package.json's
+      # packageManager field and checks the npm registry signature.
+      corepack pnpm --version
+      corepack pnpm install --frozen-lockfile --prod=false
+
+  - name: Build better-sqlite3 from source
+    runs: |
+      set -e
+      # The npm package ships prebuilt addons for 8 platforms and loads
+      # prebuilds/<platform>.node first. Drop them and compile its bundled
+      # SQLite + bindings against Wolfi's node and glibc; it then loads
+      # build/Release/better_sqlite3.node.
+      cd node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3
+      rm -rf prebuilds
+      node-gyp rebuild --release --force_build=1 -j "$(nproc)"
+      node -e "const D = require('./'); console.log('sqlite', new D(':memory:').prepare('select sqlite_version() v').get().v)"
+
+  - name: GeoNames snapshot
+    runs: |
+      set -e
+      # Upstream's script: cities5000 + admin1 codes from download.geonames.org,
+      # renamed to stable names so the server never re-downloads. GeoNames
+      # publishes no versioned dumps; the checksums in bundled-sources.json
+      # record what this build shipped.
+      node scripts/download-geonames-data.mjs geonames
+      find geonames -type f -exec sha256sum {} + | sort -k2
+
+  - name: Build
+    runs: |
+      set -e
+      # What upstream's Dockerfile passes as build args: Vite bakes the
+      # VITE_* values into the client; the server reads them from
+      # /app/build.env (see apko.yaml) for its version display and update check.
+      cat > build.env <<EOF
+      VITE_VERSION=${{package.version}}
+      VITE_BRANCH=main
+      VITE_COMMIT_HASH=${{vars.expected-commit}}
+      VITE_REPO_URL=https://github.com/TheDuffman85/crowdsec-web-ui
+      VITE_BUILD_DATE=$(git -c safe.directory='*' log -1 --format=%cd --date=format-local:%Y%m%d%H%M)
+      EOF
+      cat build.env
+      set -a; . ./build.env; set +a
+      # Upstream's vite config, plus the license list of every package the
+      # client bundle includes (read below).
+      cat > vite.dropship.config.ts <<'EOF'
+      import { mergeConfig } from 'vite';
+      import base from './vite.config.ts';
+
+      export default mergeConfig(base, { build: { license: { fileName: '.vite/license.json' } } });
+      EOF
+      NODE_ENV=production corepack pnpm exec vite build --config vite.dropship.config.ts
+      NODE_ENV=production corepack pnpm exec tsup
+
+  - name: List bundled third-party sources
+    runs: |
+      set -e
+      # npm packages (in node_modules/, or compiled into the client and
+      # server bundles) and the GeoNames data have no APK of their own, so
+      # the image SBOM doesn't list them. Declare them for hack/sources.py.
+      cat > /tmp/bundled-sources.mjs <<'EOF'
+      import crypto from 'node:crypto';
+      import fs from 'node:fs';
+      import path from 'node:path';
+      import { createRequire } from 'node:module';
+
+      const [mode, out] = process.argv.slice(2);
+      const YAML = createRequire(path.resolve('package.json'))('yaml');
+      const packages = new Map();
+      // Packages that declare no license and ship no license file, reviewed
+      // one by one (README.md, License). Any other such package fails the
+      // build; hack/notices.py accepts only entries carrying this note.
+      const NO_LICENSE_REVIEWED = {
+        'buffers@0.1.1': 'reviewed: substack 2011, repository deleted; loaded via '
+          + 'local-reverse-geocoder > unzip-stream > binary; upstream image ships it too',
+      };
+
+      function add(dir, where) {
+        const pkg = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'));
+        const key = `${pkg.name}@${pkg.version}`;
+        // MIT/X11 is the pre-SPDX name of MIT (chainsaw).
+        const declared = (typeof pkg.license === 'string' ? pkg.license
+          : (pkg.licenses || [pkg.license]).filter(Boolean).map((l) => l.type || l).join(' OR '));
+        const license = declared === 'MIT/X11' ? 'MIT' : declared || 'NOASSERTION';
+        if (license === 'NOASSERTION' && !NO_LICENSE_REVIEWED[key]) {
+          throw new Error(`${key} declares no license: review it and add it to NO_LICENSE_REVIEWED`);
+        }
+        const entry = packages.get(key) || { name: pkg.name, version: pkg.version, license, where: [] };
+        if (!entry.where.includes(where)) entry.where.push(where);
+        packages.set(key, entry);
+      }
+
+      // Package dir of a node_modules path: up to the last node_modules/<name>.
+      function packageDir(file) {
+        const m = file.match(/^(.*node_modules\/(?:@[^/]+\/)?[^/]+)\//);
+        return m && m[1];
+      }
+
+      if (mode === 'bundles') {
+        // Client: Vite's license list names the packages; find them in the store.
+        const client = JSON.parse(fs.readFileSync('dist/client/.vite/license.json', 'utf8'));
+        const store = 'node_modules/.pnpm';
+        for (const { name, version } of client) {
+          const dirs = fs.readdirSync(store)
+            .map((d) => path.join(store, d, 'node_modules', name))
+            .filter((d) => fs.existsSync(path.join(d, 'package.json'))
+              && JSON.parse(fs.readFileSync(path.join(d, 'package.json'), 'utf8')).version === version);
+          if (!dirs.length) throw new Error(`client bundle: ${name}@${version} not in ${store}`);
+          add(dirs[0], 'client bundle');
+        }
+        // Server: tsup's source maps name every bundled node_modules file.
+        for (const map of fs.readdirSync('dist/server').filter((f) => f.endsWith('.js.map'))) {
+          const { sources } = JSON.parse(fs.readFileSync(path.join('dist/server', map), 'utf8'));
+          for (const src of sources) {
+            const dir = packageDir(path.resolve('dist/server', src));
+            if (dir) add(dir, 'server bundle');
+          }
+        }
+        fs.writeFileSync(out, JSON.stringify([...packages.values()]));
+      } else {
+        for (const e of JSON.parse(fs.readFileSync(mode, 'utf8'))) packages.set(`${e.name}@${e.version}`, e);
+        // node_modules after pruning: every real package dir in pnpm's store.
+        const store = 'node_modules/.pnpm';
+        for (const d of fs.readdirSync(store, { withFileTypes: true })) {
+          if (!d.isDirectory() || d.name === 'node_modules') continue;
+          const nm = path.join(store, d.name, 'node_modules');
+          for (const n of fs.readdirSync(nm)) {
+            const names = n.startsWith('@') ? fs.readdirSync(path.join(nm, n)).map((s) => `${n}/${s}`) : [n];
+            for (const name of names) {
+              const dir = path.join(nm, name);
+              if (!fs.lstatSync(dir).isSymbolicLink()) add(dir, 'node_modules');
+            }
+          }
+        }
+        // pnpm 11+ lockfiles start with a document for pnpm itself; merge all.
+        const lock = Object.assign({}, ...YAML.parseAllDocuments(fs.readFileSync('pnpm-lock.yaml', 'utf8'))
+          .map((doc) => doc.toJS()?.packages));
+        const entries = [...packages.values()].sort((a, b) => a.name.localeCompare(b.name)).map((e) => {
+          const integrity = lock[`${e.name}@${e.version}`]?.resolution?.integrity;
+          if (!integrity?.startsWith('sha512-')) throw new Error(`${e.name}@${e.version}: no sha512 integrity in pnpm-lock.yaml`);
+          const base = e.name.split('/').pop();
+          return {
+            name: e.name,
+            version: e.version,
+            purl: `pkg:npm/${e.name.replace(/^@/, '%40')}@${e.version}`,
+            source: `https://registry.npmjs.org/${e.name}/-/${base}-${e.version}.tgz`,
+            checksum: `sha512:${Buffer.from(integrity.slice(7), 'base64').toString('hex')}`,
+            license: e.license,
+            ...(NO_LICENSE_REVIEWED[`${e.name}@${e.version}`] && { note: NO_LICENSE_REVIEWED[`${e.name}@${e.version}`] }),
+            where: e.where.sort(),
+          };
+        });
+        // The GeoNames snapshot: unversioned upstream, so pinned by checksum.
+        for (const file of ['cities5000/cities5000.txt', 'admin1_codes/admin1CodesASCII.txt']) {
+          const sha = crypto.createHash('sha256').update(fs.readFileSync(path.join('geonames', file))).digest('hex');
+          entries.push({
+            name: `GeoNames ${path.basename(file, '.txt')}`,
+            version: new Date().toISOString().slice(0, 10),
+            source: 'https://download.geonames.org/export/dump/',
+            checksum: `sha256:${sha}`,
+            license: 'CC-BY-4.0',
+            where: [`geonames/${file}`],
+          });
+        }
+        fs.writeFileSync(out, JSON.stringify(entries, null, 2) + '\n');
+        console.log(`bundled entries: ${entries.length}`);
+      }
+      EOF
+      node /tmp/bundled-sources.mjs bundles /tmp/bundled-bundles.json
+      rm -rf dist/client/.vite
+      NODE_ENV=production corepack pnpm prune --prod
+      DOC="${{targets.destdir}}/usr/share/doc/crowdsec-web-ui"
+      mkdir -p "$DOC"
+      node /tmp/bundled-sources.mjs /tmp/bundled-bundles.json "$DOC/bundled-sources.json"
+
+  - name: Install
+    runs: |
+      set -e
+      # Upstream's container layout: /app with data in /app/data, so its docs
+      # and config paths apply unchanged.
+      APP="${{targets.destdir}}/app"
+      mkdir -p "$APP"
+      cp -a package.json build.env dist geonames node_modules "$APP/"
+      # better-sqlite3: keep only the addon, not its build tree, static
+      # SQLite library or the bundled SQLite sources.
+      sqlite=$(echo "$APP"/node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3)
+      mv "$sqlite/build/Release/better_sqlite3.node" /tmp/
+      rm -rf "$sqlite/build" "$sqlite/deps" "$sqlite/src"
+      mkdir -p "$sqlite/build/Release"
+      mv /tmp/better_sqlite3.node "$sqlite/build/Release/"
+
+  - uses: strip
+
+test:
+  environment:
+    contents:
+      packages:
+        - busybox
+  pipeline:
+    - name: Native addon and bundled sources
+      runs: |
+        set -e
+        cd /app
+        node -e "const D = require('better-sqlite3'); const d = new D(':memory:'); console.log(d.prepare('select sqlite_version() v').get())"
+        grep -q '"pkg:npm/better-sqlite3@' /usr/share/doc/crowdsec-web-ui/bundled-sources.json
+        grep -q '"pkg:npm/react@' /usr/share/doc/crowdsec-web-ui/bundled-sources.json
+        grep -q '"GeoNames cities5000"' /usr/share/doc/crowdsec-web-ui/bundled-sources.json
+        grep -qx 'VITE_VERSION=${{package.version}}' build.env
+    - name: Server starts and reports healthy
+      runs: |
+        set -e
+        cd /app
+        mkdir -p /app/data
+        # The LAPI is unreachable: the server must still come up.
+        CONFIG_INSTANCE_LAPI_URL=http://127.0.0.1:1 \
+          node --env-file=build.env dist/server/index.js >/tmp/server.log 2>&1 &
+        for i in $(seq 60); do
+          if node -e "fetch('http://127.0.0.1:3000/api/health').then(async (r) => { console.log(await r.text()); process.exit(r.ok ? 0 : 1); }, () => process.exit(1))"; then
+            exit 0
+          fi
+          sleep 1
+        done
+        cat /tmp/server.log
+        exit 1

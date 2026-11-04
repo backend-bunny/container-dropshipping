@@ -37,10 +37,10 @@ apko's SPDX SBOM already links every APK to its upstream source
 Wolfi-internal packages (`wolfi-baselayout`, `krb5-conf`) have no source
 link, so their recipe commit stands in. It adds every
 `usr/share/doc/*/bundled-sources.json` found in the image layers (signal-cli's
-Maven jars + JDK).
+Maven jars + JDK, crowdsec-web-ui's npm packages + GeoNames data).
 
 - **Pinned** means a 40-hex commit, a checksum, a `tarballs.cgr.dev` archive,
-  or (bundled) a versioned `pkg:maven`/`pkg:apk` purl. A tag alone is not
+  or (bundled) a versioned `pkg:maven`/`pkg:npm`/`pkg:apk` purl. A tag alone is not
   pinned: that's how signal-cli's `expected-commit: ""` was caught.
 - **`tarballs.cgr.dev`** is Chainguard's public, content-addressed source
   archive (`<hash>-<commit>.tar.gz`). Most Wolfi sources have a copy there,
@@ -76,11 +76,17 @@ as `…/notices/v1`. For each package:
   the image, plus the POM licenses (parents followed, names mapped to SPDX).
   An entry's own `license` in `bundled-sources.json` wins (libsignal: not on
   Maven Central). Entries with a GitHub `source` + `ref` get that archive's
-  files. The JDK gets `jre/legal/` from the image.
+  files. The JDK gets `jre/legal/` from the image. `pkg:npm` entries get the
+  license files of their registry tarball (`source`), verified against the
+  entry's `checksum` (`sha512:<hex>` from `pnpm-lock.yaml`'s integrity).
 - Texts are stored once by SHA256. Sizes on 2026-10-31: haproxy 266 KiB,
-  signal-cli 708 KiB, tofu-ci 737 KiB. **The build fails above 1 MiB** (the
+  signal-cli 708 KiB, tofu-ci 737 KiB. crowdsec-web-ui 942 KiB
+  (2026-11-04: 92% of the budget, its 281 npm/GeoNames entries ≈ 400 KiB). **The build fails above 1 MiB** (the
   attestation predicate), so check this if an image grows.
-- **Fails only if an item has no text at all.** Canonical-only items and
+- **Fails only if an item has no text at all**, unless it is a bundled
+  entry with license `NOASSERTION` **and** a `note`: the component reviewed
+  it by name@version (crowdsec-web-ui's `buffers@0.1.1`). That's a warning
+  carrying the note. Canonical-only items and
   404'd archives are warnings in the job summary. Other download errors
   fail the build after 3 tries, so a network blip can't silently drop a
   notice.

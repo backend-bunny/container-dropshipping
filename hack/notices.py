@@ -12,12 +12,17 @@ that, so this gathers it next to the image (publish attests it):
 - Bundled Maven jars: META-INF license/notice files from the jar in the
   image, plus the canonical text of the POM's licenses (parent POMs
   included).
+- Bundled npm packages: license files at the top of the package's registry
+  tarball (verified against the lockfile's integrity), plus the canonical
+  text of package.json's license.
 - Other bundled parts: the jlink'd JDK's jre/legal/ files from the image.
   A bundled entry's own SPDX "license" field wins over the POM's, and one
   with a GitHub source + ref also gets the license files of that archive.
 
-Texts are stored once, keyed by SHA256. render fails only if something ends
-up with no text at all; canonical-only packages are listed as warnings.
+Texts are stored once, keyed by SHA256. render fails if something ends up
+with no text at all. The one exception is a bundled entry with license
+NOASSERTION (upstream declares none) and a "note": the component reviewed
+it by name and version. Those and canonical-only packages are warnings.
 
   notices.py render SOURCES_JSON IMAGE_TAR CACHE_DIR OUT_JSON OUT_MD
 """
@@ -88,7 +93,8 @@ def fetch(url, cache_dir):
 def spdx_ids(expression):
     tokens = re.split(r"[\s()]+", expression or "")
     return [current_id(t) for t in tokens
-            if t and t not in ("AND", "OR", "WITH") and not t.startswith("LicenseRef-")]
+            if t and t not in ("AND", "OR", "WITH", "NOASSERTION", "NONE")
+            and not t.startswith("LicenseRef-")]
 
 
 def current_id(spdx_id):
@@ -238,6 +244,8 @@ def collect(sources_json, image_tar, cache_dir):
                         files.append({"path": f"{os.path.basename(path)}!/{name}",
                                       "sha256": texts.add(text), "origin": "jar"})
             expression = expression or " AND ".join(pom_licenses(group, artifact, version, cache_dir))
+        if purl.startswith("pkg:npm/"):
+            harvest(source, b.get("checksum", ""), texts, cache_dir, files, unavailable)
         if purl.startswith("pkg:apk/wolfi/openjdk"):
             for path, data in sorted(legal.items()):
                 files.append({"path": path, "sha256": texts.add(data), "origin": "image"})
@@ -247,7 +255,7 @@ def collect(sources_json, image_tar, cache_dir):
         canonical, missing = texts.spdx(expression)
         extra.append({"name": b.get("name"), "version": b.get("version"), "bundled_in": b["bundled_in"],
                       "license": expression, "files": files + canonical, "missing": missing,
-                      "unavailable": unavailable})
+                      "unavailable": unavailable, **({"note": b["note"]} if b.get("note") else {})})
     return {"packages": packages, "bundled": extra, "texts": texts.texts}
 
 
@@ -260,6 +268,11 @@ def markdown(notices):
         canonical = ", ".join(f["path"].removeprefix("spdx:") for f in p["files"] if f["origin"] == "spdx")
         lines.append(f"| {label} | {p['license'] or '?'} | {upstream or '⚠ none'} | {canonical} |")
     return "\n".join(lines) + "\n"
+
+
+def reviewed(item):
+    """A bundled part with no license at all, accepted by its component."""
+    return item["license"] == "NOASSERTION" and not item["files"] and bool(item.get("note"))
 
 
 def render(sources_json, image_tar, cache_dir, out_json, out_md):
@@ -279,9 +292,12 @@ def render(sources_json, image_tar, cache_dir, out_json, out_md):
             print(f"  warning: {name}: source archive gone (404): {url}", file=sys.stderr)
         if p["missing"]:
             print(f"  warning: {name}: no SPDX text for {', '.join(p['missing'])}", file=sys.stderr)
-        if not any(f["origin"] != "spdx" for f in p["files"]):
+        if reviewed(p):
+            print(f"  warning: {name}: upstream declares no license ({p['note']})", file=sys.stderr)
+        elif not any(f["origin"] != "spdx" for f in p["files"]):
             print(f"  warning: {name}: canonical text only, no upstream notice", file=sys.stderr)
-    empty = [p.get("package") or p.get("name") for p in items if not p["files"]]
+    empty = [p.get("package") or p.get("name") for p in items
+             if not p["files"] and not reviewed(p)]
     if empty:
         sys.exit(f"error: no license text at all for: {', '.join(empty)}")
     if size > MAX_BYTES:
