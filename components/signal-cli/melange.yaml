@@ -23,9 +23,9 @@ package:
   # Keep version last and vars.expected-commit right below it: Renovate's
   # regex must match both in one span to bump them together.
   # renovate: datasource=github-tags depName=AsamK/signal-cli
-  version: "0.14.9"
+  version: "0.14.10"
 vars:
-  expected-commit: 3997429779095ff3a2d64c877126e84fce9852aa
+  expected-commit: 8890c1bb7fd266444e83f6c5a91a7d5b6095d2b3
 
 environment:
   contents:
