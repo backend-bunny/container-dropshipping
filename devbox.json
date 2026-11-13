@@ -5,8 +5,8 @@
     "apko@1.2.37",
     "cosign@3.1.3",
     "go-task@3.53.1",
-    "bubblewrap@0.12.0",
-    "python3@3.14.8",
+    "bubblewrap@0.13.1",
+    "python3@3.14.10",
     "jq@1.8.2",
     "grype@0.120.0"
   ]
