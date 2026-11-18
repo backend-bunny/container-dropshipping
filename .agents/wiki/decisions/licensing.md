@@ -78,6 +78,14 @@ an engineering reading, not legal advice.
   Same download cost either way (41 archives, 79 MiB, cached).
   - Remaining: a few MIT/BSD jars lack their exact copyright line, and gcc's
     archive is missing on `tarballs.cgr.dev` (canonical texts only).
+- **2026-11-18: notices are paginated.** Compact JSON alone left only
+  22 KiB of headroom for crowdsec-web-ui. New images attest base64 chunks
+  as `…/notices-page/v2` and a complete-set index as `…/notices/v2`, with
+  SHA256 and size checks for every chunk and the reconstructed document.
+  Every predicate is at most 512 KiB; the complete notice document is no
+  longer capped at 1 MiB. The full texts and metadata are retained.
+  Verify both types against the same image digest before reconstruction
+  (root README). Existing `notices/v1` attestations remain readable.
 
 ## Consequences
 

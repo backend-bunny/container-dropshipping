@@ -103,9 +103,10 @@ upstream's to bump). No Wolfi package matched. The image tarball is 95 MB.
 
 ## Gotchas
 
-- **notices.json is 964,349 bytes: 92% of the 1 MiB attestation budget**
-  (82 KiB headroom). The largest texts are nodejs-24's 153 KiB `LICENSE`,
-  glibc's COPYINGv3 and the AGPL twice (upstream file + canonical). Growth in
-  upstream's npm dependencies could fail the build. Options then: drop
-  canonical texts when an identical upstream file exists, or compress the
-  predicate.
+- **Notices outgrew the single-attestation budget:** 2026.11.11 produced
+  1,059,981 bytes with indentation. Compact JSON alone saved only 34,011
+  bytes. Since 2026-11-18, notices use a signed index and size-bounded
+  pages, so dependency growth adds pages instead of hitting a 1 MiB
+  document limit. No texts are dropped, including nodejs-24's large
+  `LICENSE` and upstream/canonical copies. See [[components/build-pipeline]]
+  for verification and reconstruction.

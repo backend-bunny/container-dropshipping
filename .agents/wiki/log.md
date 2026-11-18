@@ -227,3 +227,37 @@ Append-only, newest last. Format: `## [YYYY-MM-DD] <kind> | <subject>`.
 - notices.json is 942 KiB, close to the 1 MiB budget (see the component
   page).
 - Root README component row. See [[components/crowdsec-web-ui]].
+
+## [2026-11-18] fix | compact license notice attestations
+
+- PR #36's crowdsec-web-ui build produced 1,059,981 bytes of notices,
+  exceeding the 1,048,576-byte budget. `hack/notices.py` now emits compact
+  JSON, preserving every license text, metadata field and SHA256 reference
+  without raising the limit or changing the `notices/v1` schema.
+- Added standard-library rendering tests to CI: lossless compaction,
+  unchanged Markdown, exact byte-limit acceptance/rejection, missing-text
+  rejection and the reviewed NOASSERTION exception.
+- Verified the full PR build, image smoke test and publish dry run.
+  Notices are now 1,025,970 bytes (22,606 below budget); all 206 text
+  hashes and references across 302 items validate.
+- See [[components/build-pipeline]] -> License notices.
+
+## [2026-11-18] change | paginated notice attestations
+
+- Compact JSON was only a tactical fix: 22 KiB of headroom would not
+  accommodate continued dependency growth. Replaced the single notice
+  predicate with bounded `notices-page/v2` attestations and a
+  `notices/v2` index, published last on the same image digest.
+- Every predicate is limited to 512 KiB. Base64 chunks allow even a single
+  large license text to span pages. The index commits to chunk order,
+  sizes and SHA256 hashes, plus the complete document's size and SHA256.
+- `hack/notices.py assemble` reconstructs verified predicates only after
+  completeness and integrity checks. Identical signing retries are
+  accepted; conflicting indexes and corrupt or missing pages fail.
+- Updated publishing, CI regression tests, retrieval commands and the
+  licensing/component wiki pages. Legacy `notices/v1` remains documented.
+- Validation: 18 regression tests pass. The actual PR image's notices
+  round-trip byte-for-byte through three pages (523,371, 523,371 and
+  321,539 bytes), with a 448-byte index. Publishing command checks confirm
+  pages precede the index and a failed page prevents index publication;
+  no registry writes were performed.

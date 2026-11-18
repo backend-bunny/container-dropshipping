@@ -49,6 +49,8 @@ jobs:
       - uses: ./.github/actions/setup-tools
         with:
           component: ${{ matrix.component }}
+      - name: Test notice rendering
+        run: devbox run -- python3 -B -m unittest discover -s hack -p 'test_*.py'
       - name: Build (melange + apko from lockfile)
         run: devbox run -- hack/build.sh "$COMPONENT"
       - name: Source manifest and license notices summary
