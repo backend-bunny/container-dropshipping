@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build one component exactly as CI does:
 #   ephemeral melange key -> melange build + test -> apko build from the lock.
-# Outputs out/<component>/{image.tar,build.lock.json,sbom-*.spdx.json,sources.{json,md},notices.{json,md},melange.rsa.pub}.
+# Outputs out/<component>/{image.tar,build.lock.json,sbom-*.spdx.json,sources.{json,md},notices.{json,md,index.json},notices.pages/,melange.rsa.pub}.
 # Usage: hack/build.sh <component>
 set -euo pipefail
 cd "$(dirname "$0")/.."

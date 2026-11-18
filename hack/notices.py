@@ -25,12 +25,17 @@ NOASSERTION (upstream declares none) and a "note": the component reviewed
 it by name and version. Those and canonical-only packages are warnings.
 
   notices.py render SOURCES_JSON IMAGE_TAR CACHE_DIR OUT_JSON OUT_MD
+  notices.py paginate NOTICES_JSON
+  notices.py assemble VERIFIED_INDEX_JSON VERIFIED_PAGES_JSONL OUT_JSON
 """
 
+import base64
+import binascii
 import hashlib
 import io
 import json
 import os
+from pathlib import Path
 import re
 import sys
 import tarfile
@@ -47,7 +52,8 @@ from sources import image_files  # noqa: E402
 # spdx/license-list-data v3.29.0, pinned by commit.
 SPDX_TEXT = "https://raw.githubusercontent.com/spdx/license-list-data/31ba1a50e5397e00a304dbadc76531740e89ee48/text/{}.txt"
 MAVEN = "https://repo1.maven.org/maven2"
-MAX_BYTES = 1 << 20  # the attestation predicate; see the build-pipeline wiki page
+MAX_BYTES = 512 << 10  # per predicate, leaving room for the signing envelope
+CHUNK_BYTES = (MAX_BYTES - 1024) // 4 * 3  # base64 plus page metadata
 
 NOTICE_NAME = re.compile(r"(?i)^(licen[cs]e|copying|copyright|notice)[\w.-]*$")
 JAR_NOTICE = re.compile(r"(?i)^(meta-inf/)?([^/]*/)?(licen[cs]e|copying|copyright|notice)([-._][^/]*)?$")
@@ -275,10 +281,106 @@ def reviewed(item):
     return item["license"] == "NOASSERTION" and not item["files"] and bool(item.get("note"))
 
 
+def json_bytes(value):
+    return (json.dumps(value, separators=(",", ":")) + "\n").encode("utf-8")
+
+
+def write_predicate(path, predicate):
+    data = json_bytes(predicate)
+    if len(data) > MAX_BYTES:
+        raise ValueError(f"{path} is {len(data)} bytes, over the {MAX_BYTES}-byte attestation budget")
+    path.write_bytes(data)
+
+
+def paginate(notices_json):
+    """Split the complete JSON into bounded, independently attestable chunks."""
+    path = Path(notices_json)
+    data = path.read_bytes()
+    json.loads(data)
+    document_sha = hashlib.sha256(data).hexdigest()
+    pages_dir = path.with_suffix(".pages")
+    pages_dir.mkdir(exist_ok=True)
+    for old in pages_dir.glob("page-*.json"):
+        old.unlink()
+    pages = []
+    for offset in range(0, len(data), CHUNK_BYTES):
+        chunk = data[offset:offset + CHUNK_BYTES]
+        number = len(pages) + 1
+        predicate = {"documentSha256": document_sha, "number": number,
+                     "data": base64.b64encode(chunk).decode("ascii")}
+        write_predicate(pages_dir / f"page-{number:06d}.json", predicate)
+        pages.append({"number": number, "sha256": hashlib.sha256(chunk).hexdigest(),
+                      "size": len(chunk)})
+    index = {"documentSha256": document_sha, "documentSize": len(data),
+             "encoding": "base64", "pages": pages}
+    write_predicate(path.with_suffix(".index.json"), index)
+    print(f"  {len(pages)} notice pages, each at most {MAX_BYTES // 1024} KiB")
+
+
+def read_predicates(path):
+    """Read JSON predicates extracted from verified attestations with jq -c."""
+    with open(path, encoding="utf-8") as f:
+        return [json.loads(line) for line in f if line.strip()]
+
+
+def assemble(index_json, pages_jsonl, out_json):
+    """Reconstruct only after checking every chunk and the complete document."""
+    indexes = read_predicates(index_json)
+    if not indexes or any(index != indexes[0] for index in indexes):
+        raise ValueError("expected one distinct notice index; select one if several were published")
+    index = indexes[0]
+    if not isinstance(index, dict) or index.get("encoding") != "base64":
+        raise ValueError("invalid notice index encoding")
+    document_sha = index.get("documentSha256")
+    if not isinstance(document_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", document_sha):
+        raise ValueError("invalid notice document SHA256")
+    if type(index.get("documentSize")) is not int or index["documentSize"] <= 0:
+        raise ValueError("invalid notice document size")
+    pages = index.get("pages")
+    if not isinstance(pages, list) or not pages:
+        raise ValueError("notice index has no pages")
+    for number, page in enumerate(pages, 1):
+        if (not isinstance(page, dict) or type(page.get("number")) is not int
+                or page["number"] != number
+                or type(page.get("size")) is not int or not 0 < page["size"] <= CHUNK_BYTES
+                or not isinstance(page.get("sha256"), str)
+                or not re.fullmatch(r"[0-9a-f]{64}", page["sha256"])):
+            raise ValueError(f"invalid notice index entry for page {number}")
+
+    chunks = {}
+    for page in read_predicates(pages_jsonl):
+        if not isinstance(page, dict) or not isinstance(page.get("documentSha256"), str):
+            raise ValueError("invalid notice page")
+        if page["documentSha256"] != document_sha:
+            print("  warning: ignoring notice page for another document", file=sys.stderr)
+            continue
+        number = page.get("number")
+        if type(number) is not int or not 1 <= number <= len(pages):
+            raise ValueError(f"unexpected notice page number: {number}")
+        if not isinstance(page.get("data"), str):
+            raise ValueError(f"invalid data for notice page {number}")
+        try:
+            chunk = base64.b64decode(page["data"], validate=True)
+        except (binascii.Error, ValueError) as e:
+            raise ValueError(f"invalid base64 for notice page {number}") from e
+        expected = pages[number - 1]
+        if len(chunk) != expected["size"] or hashlib.sha256(chunk).hexdigest() != expected["sha256"]:
+            raise ValueError(f"size or SHA256 mismatch for notice page {number}")
+        chunks[number] = chunk  # identical duplicates from signing retries are harmless
+    missing = sorted(set(range(1, len(pages) + 1)) - chunks.keys())
+    if missing:
+        raise ValueError(f"missing notice pages: {', '.join(map(str, missing))}")
+    data = b"".join(chunks[number] for number in range(1, len(pages) + 1))
+    if len(data) != index["documentSize"] or hashlib.sha256(data).hexdigest() != document_sha:
+        raise ValueError("notice document size or SHA256 mismatch")
+    json.loads(data)
+    Path(out_json).write_bytes(data)
+
+
 def render(sources_json, image_tar, cache_dir, out_json, out_md):
     notices = collect(sources_json, image_tar, cache_dir)
     with open(out_json, "w") as f:
-        json.dump(notices, f, indent=1)
+        json.dump(notices, f, separators=(",", ":"))
         f.write("\n")
     with open(out_md, "w") as f:
         f.write(markdown(notices))
@@ -300,13 +402,19 @@ def render(sources_json, image_tar, cache_dir, out_json, out_md):
              if not p["files"] and not reviewed(p)]
     if empty:
         sys.exit(f"error: no license text at all for: {', '.join(empty)}")
-    if size > MAX_BYTES:
-        sys.exit(f"error: {out_json} is {size} bytes, over the {MAX_BYTES}-byte attestation budget")
+    paginate(out_json)
 
 
 if __name__ == "__main__":
     cmd, args = sys.argv[1], sys.argv[2:]
-    if cmd == "render" and len(args) == 5:
-        render(*args)
-    else:
-        sys.exit(__doc__)
+    try:
+        if cmd == "render" and len(args) == 5:
+            render(*args)
+        elif cmd == "paginate" and len(args) == 1:
+            paginate(*args)
+        elif cmd == "assemble" and len(args) == 3:
+            assemble(*args)
+        else:
+            sys.exit(__doc__)
+    except (OSError, ValueError) as e:
+        sys.exit(f"error: {e}")

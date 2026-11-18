@@ -62,8 +62,8 @@ and runs `components/<name>/test.sh`.
 
 ## License notices (hack/notices.py)
 
-Runs after `sources.py` and writes `out/<name>/notices.{json,md}`, attested
-as `…/notices/v1`. For each package:
+Runs after `sources.py` and writes `out/<name>/notices.{json,md}`,
+`notices.index.json` and `notices.pages/page-*.json`. For each package:
 
 - **Upstream files:** files at the top of its pinned source archive matching
   `licen[cs]e|copying|copyright|notice` (+ suffix, e.g. glibc's `COPYINGv2`,
@@ -81,8 +81,33 @@ as `…/notices/v1`. For each package:
   entry's `checksum` (`sha512:<hex>` from `pnpm-lock.yaml`'s integrity).
 - Texts are stored once by SHA256. Sizes on 2026-10-31: haproxy 266 KiB,
   signal-cli 708 KiB, tofu-ci 737 KiB. crowdsec-web-ui 942 KiB
-  (2026-11-04: 92% of the budget, its 281 npm/GeoNames entries ≈ 400 KiB). **The build fails above 1 MiB** (the
-  attestation predicate), so check this if an image grows.
+  (2026-11-04: 92% of the budget, its 281 npm/GeoNames entries ≈ 400 KiB).
+  Since 2026-11-18, the complete JSON is compact and paginated, rather than
+  failing when that document exceeds 1 MiB. No license text, metadata or
+  SHA256 references are removed or changed; Markdown stays readable.
+- **Pagination protocol:** base64 chunks of the complete JSON are attested
+  as `…/notices-page/v2`, bound to the document SHA256 and a 1-based page
+  number. A `…/notices/v2` index records each decoded chunk's size and
+  SHA256, plus the complete document's size and SHA256. Every serialized
+  predicate (pages **and index**) is limited to 512 KiB, leaving room for
+  DSSE/base64 and signing metadata. Texts larger than a page work without
+  special cases. The index itself remains bounded and fails explicitly if
+  an exceptionally large page list exceeds the limit.
+- Publish uploads every page **before** its index, on the same image index
+  digest. Repeated signing may leave identical duplicates: assembly accepts
+  those. Pages for another document are reported and skipped; multiple
+  distinct indexes fail with an explicit selection error.
+- **Retrieval:** verify both attestation types with cosign against the same
+  pinned image digest, extract predicates as compact JSON lines, then run
+  `hack/notices.py assemble INDEX_JSON PAGES_JSONL OUT_JSON`. Assembly checks
+  page numbers, completeness, chunk hashes/sizes and full-document
+  hash/size before writing. It does **not** verify signatures itself.
+  See the root README for commands. Previously published `notices/v1`
+  attestations remain readable directly; the assembled v2 document has
+  the same `packages`, `bundled`, `texts` structure.
+- CI runs `python3 -B -m unittest discover -s hack -p 'test_*.py'` to check
+  lossless rendering, large documents/texts, page boundaries, tampering,
+  missing pages, publishing retries and per-predicate byte limits.
 - **Fails only if an item has no text at all**, unless it is a bundled
   entry with license `NOASSERTION` **and** a `note`: the component reviewed
   it by name@version (crowdsec-web-ui's `buffers@0.1.1`). That's a warning
