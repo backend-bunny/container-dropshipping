@@ -155,41 +155,41 @@
         }
       }
     },
-    "grype@0.120.0": {
-      "last_modified": "2026-11-03T19:55:20Z",
-      "resolved": "github:NixOS/nixpkgs/9d3b8db48266c17be0b5f9c6360c3ecfbac3d1f5#grype",
+    "grype@0.121.3": {
+      "last_modified": "2026-11-16T14:48:49Z",
+      "resolved": "github:NixOS/nixpkgs/e21fec321d73511849707a7585e4ea155ee4bf40#grype",
       "source": "devbox-search",
-      "version": "0.120.0",
+      "version": "0.121.3",
       "systems": {
         "aarch64-darwin": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/7r24kzxg8in0g0vydh63z6ybrm5p7cmy-grype-0.120.0",
+              "path": "/nix/store/r6k6dl3dlwkq7rgz7d6q2lcdilb9a3v7-grype-0.121.3",
               "default": true
             }
           ],
-          "store_path": "/nix/store/7r24kzxg8in0g0vydh63z6ybrm5p7cmy-grype-0.120.0"
+          "store_path": "/nix/store/r6k6dl3dlwkq7rgz7d6q2lcdilb9a3v7-grype-0.121.3"
         },
         "aarch64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/8fxvf9jfl3d59jhzz2mlbdrzdair6a9y-grype-0.120.0",
+              "path": "/nix/store/gv7rax5h93i6d0fhp0vy8ghdjadx58zv-grype-0.121.3",
               "default": true
             }
           ],
-          "store_path": "/nix/store/8fxvf9jfl3d59jhzz2mlbdrzdair6a9y-grype-0.120.0"
+          "store_path": "/nix/store/gv7rax5h93i6d0fhp0vy8ghdjadx58zv-grype-0.121.3"
         },
         "x86_64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/20jr2x4rn7cpnf30z7wgkbqglz1xd2f2-grype-0.120.0",
+              "path": "/nix/store/qz97mbxj9qv4ad4rpim35w3b7zps9lgk-grype-0.121.3",
               "default": true
             }
           ],
-          "store_path": "/nix/store/20jr2x4rn7cpnf30z7wgkbqglz1xd2f2-grype-0.120.0"
+          "store_path": "/nix/store/qz97mbxj9qv4ad4rpim35w3b7zps9lgk-grype-0.121.3"
         }
       }
     },
