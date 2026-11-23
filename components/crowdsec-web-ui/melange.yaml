@@ -19,9 +19,9 @@ package:
   # Keep version last and vars.expected-commit right below it: Renovate's
   # regex must match both in one span to bump them together.
   # renovate: datasource=github-tags depName=TheDuffman85/crowdsec-web-ui
-  version: "2026.11.11"
+  version: "2026.11.12"
 vars:
-  expected-commit: 9ad5cd71fadd81f465183503828cc87fbee803c1
+  expected-commit: 71c66f5bef23329deff993725914a12020a58b3c
 
 environment:
   contents:
